@@ -1,5 +1,6 @@
 package com.dreb.ratelimit;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ public final class RedisStateStore implements StateStore {
             local legacyOverdraw = tonumber(ARGV[14])
             local decayScalingEnabled = tonumber(ARGV[15])
             local sustainedCostScalingEnabled = tonumber(ARGV[16])
+            local keyTtl = tonumber(ARGV[17])
 
             local state = redis.call('HMGET', key, 'burst_tokens', 'sustained_tokens', 'idle_credit', 'last_refill_ts', 'abuse_score')
             local burstTokens = tonumber(state[1])
@@ -116,22 +118,32 @@ public final class RedisStateStore implements StateStore {
             end
 
             redis.call('HMSET', key,
-                'burst_tokens', tostring(burstTokens),
-                'sustained_tokens', tostring(sustainedTokens),
-                'idle_credit', tostring(idleCredit),
-                'last_refill_ts', tostring(lastRefillTs),
-                'abuse_score', tostring(abuseScore)
+                'burst_tokens', string.format('%.17g', burstTokens),
+                'sustained_tokens', string.format('%.17g', sustainedTokens),
+                'idle_credit', string.format('%.17g', idleCredit),
+                'last_refill_ts', string.format('%.17g', lastRefillTs),
+                'abuse_score', string.format('%.17g', abuseScore)
             )
+
+            if keyTtl and keyTtl > 0 then
+                redis.call('EXPIRE', key, math.floor(keyTtl))
+            end
 
             return allowed
             """;
 
     private final RedisHashClient redis;
     private final String keyPrefix;
+    private final Duration keyTtl;
 
     public RedisStateStore(RedisHashClient redis, String keyPrefix) {
+        this(redis, keyPrefix, null);
+    }
+
+    public RedisStateStore(RedisHashClient redis, String keyPrefix, Duration keyTtl) {
         this.redis = redis;
         this.keyPrefix = keyPrefix;
+        this.keyTtl = keyTtl;
     }
 
     @Override
@@ -142,6 +154,10 @@ public final class RedisStateStore implements StateStore {
     @Override
     public Decision atomicAllow(String clientId, int cost, double now, AtomicAllowContext context) {
         String key = key(clientId);
+        long ttlSeconds = (keyTtl != null && !keyTtl.isNegative() && !keyTtl.isZero())
+                ? Math.max(1, (long) Math.ceil(keyTtl.toMillis() / 1000.0))
+                : 0;
+
         List<String> keys = List.of(key);
         List<String> args = List.of(
                 Double.toString(now),
@@ -159,11 +175,16 @@ public final class RedisStateStore implements StateStore {
                 Double.toString(context.sustainedCostGain()),
                 context.legacyOverdraw() ? "1" : "0",
                 context.decayScalingEnabled() ? "1" : "0",
-                context.sustainedCostScalingEnabled() ? "1" : "0"
+                context.sustainedCostScalingEnabled() ? "1" : "0",
+                Long.toString(ttlSeconds)
         );
 
         long res = redis.eval(DREB_ALLOW_LUA, keys, args);
         return (res == 1L) ? Decision.ALLOW : Decision.DENY;
+    }
+
+    public Duration getKeyTtl() {
+        return keyTtl;
     }
 
     @Override

@@ -12,12 +12,14 @@ import redis.clients.jedis.JedisPool;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -157,5 +159,87 @@ public class RedisAtomicLuaConcurrencyTest {
             assertEquals(20, allowedCount.get(),
                     "Under atomic Redis enforcement, total admitted requests across independent instances must be exactly 20 in trial " + trial);
         }
+    }
+
+    @Test
+    @DisplayName("Redis key expires when TTL is configured")
+    void testKeyExpiresWhenTtlConfigured() throws InterruptedException {
+        assertNotNull(jedisPool, "Redis server must be running (either local Redis 7 or Testcontainers)");
+        RedisHashClient redisClient = new JedisHashClient(jedisPool);
+
+        // Configure a store with 1 second TTL
+        Duration ttl = Duration.ofSeconds(1);
+        RedisStateStore store = new RedisStateStore(redisClient, "ttl-test", ttl);
+        ManualClock clock = new ManualClock(100.0);
+        ConstantRateRefillStrategy refill = new ConstantRateRefillStrategy(10, 5, 20, 10);
+        LinearIdleCreditPolicy idle = new LinearIdleCreditPolicy(5, 10, 1.5);
+        DREBLimiter limiter = new DREBLimiter(store, clock, refill, idle, 20);
+
+        String clientId = "expiring-client-" + System.currentTimeMillis();
+        String fullKey = "ttl-test:" + clientId;
+
+        // Perform write via allow
+        assertEquals(Decision.ALLOW, limiter.allow(clientId, 1));
+
+        // Immediately verify key exists in Redis and has a TTL > 0
+        try (Jedis jedis = jedisPool.getResource()) {
+            assertTrue(jedis.exists(fullKey), "Key should exist immediately after write");
+            long keyTtl = jedis.ttl(fullKey);
+            assertTrue(keyTtl > 0 && keyTtl <= 1, "Key TTL should be set to 1 second, got: " + keyTtl);
+        }
+
+        // Wait for expiration (1.2 seconds)
+        Thread.sleep(1200);
+
+        // Verify key is gone in Redis
+        try (Jedis jedis = jedisPool.getResource()) {
+            assertFalse(jedis.exists(fullKey), "Key should have expired and been removed from Redis");
+        }
+
+        // State loaded after expiration should be fresh initial state
+        ClientState state = store.load(clientId, () -> ClientState.fresh(10, 20, 200.0));
+        assertEquals(10.0, state.burstTokens, 1e-9);
+        assertEquals(20.0, state.sustainedTokens, 1e-9);
+    }
+
+    @Test
+    @DisplayName("Timestamp near 1.76e9 with fractional part preserves exact double precision across Lua and Java round trips")
+    void testTimestampPrecisionLosslessRoundTrip() {
+        assertNotNull(jedisPool, "Redis server must be running (either local Redis 7 or Testcontainers)");
+        RedisHashClient redisClient = new JedisHashClient(jedisPool);
+        RedisStateStore store = new RedisStateStore(redisClient, "precision-test");
+
+        // Timestamp near 1.76e9 with high-precision fractional part
+        double highPrecisionTs = 1761234567.8912345;
+        String clientId = "precision-client-" + System.currentTimeMillis();
+
+        // 1. Test Lua script write/read round trip via atomicAllow
+        AtomicAllowContext context = AtomicAllowContext.forDrebV1(
+                50.0, 10.0, 100.0, 20.0, 5.0, 50.0, 1.5, false);
+        Decision d = store.atomicAllow(clientId, 1, highPrecisionTs, context);
+        assertEquals(Decision.ALLOW, d);
+
+        ClientState luaLoaded = store.load(clientId, () -> null);
+        assertNotNull(luaLoaded);
+        assertEquals(highPrecisionTs, luaLoaded.lastRefillTs, 0.0,
+                "Lua string.format('%.17g') must preserve exact IEEE-754 binary64 double timestamp");
+
+        // 2. Test Java save / load round trip
+        String clientSaveId = "precision-save-" + System.currentTimeMillis();
+        ClientState savedState = new ClientState(
+                49.12345678901234,
+                99.87654321098765,
+                12.34567890123456,
+                highPrecisionTs,
+                0.1234567890123456);
+        store.save(clientSaveId, savedState);
+
+        ClientState javaLoaded = store.load(clientSaveId, () -> null);
+        assertNotNull(javaLoaded);
+        assertEquals(savedState.burstTokens, javaLoaded.burstTokens, 0.0);
+        assertEquals(savedState.sustainedTokens, javaLoaded.sustainedTokens, 0.0);
+        assertEquals(savedState.idleCredit, javaLoaded.idleCredit, 0.0);
+        assertEquals(savedState.lastRefillTs, javaLoaded.lastRefillTs, 0.0);
+        assertEquals(savedState.abuseScore, javaLoaded.abuseScore, 0.0);
     }
 }

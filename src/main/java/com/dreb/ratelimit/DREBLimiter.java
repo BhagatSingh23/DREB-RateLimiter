@@ -74,13 +74,15 @@ public final class DREBLimiter extends AbstractRateLimiter {
 
     @Override
     protected AtomicAllowContext atomicAllowContext() {
-        double decay = (idlePolicy instanceof LinearIdleCreditPolicy linear) ? linear.decay() : 1.5;
-        double gain = (idlePolicy instanceof LinearIdleCreditPolicy linear) ? linear.gain() : 0.0;
-        double cap = (idlePolicy instanceof LinearIdleCreditPolicy linear) ? linear.cap() : 0.0;
+        if (!(idlePolicy instanceof LinearIdleCreditPolicy linear)) {
+            throw new UnsupportedOperationException(
+                    "IdleCreditPolicy of type " + (idlePolicy == null ? "null" : idlePolicy.getClass().getName())
+                            + " is unsupported for atomic stores; DREBLimiter requires LinearIdleCreditPolicy");
+        }
         return AtomicAllowContext.forDrebV1(
                 refillStrategy.burstMax(), refillStrategy.burstRate(),
                 sustainedCapacity, refillStrategy.sustainedRate(),
-                gain, cap, decay, legacyOverdraw);
+                linear.gain(), linear.cap(), linear.decay(), legacyOverdraw);
     }
 
     public ConstantRateRefillStrategy refillStrategy() { return refillStrategy; }

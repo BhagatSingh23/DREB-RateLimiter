@@ -47,3 +47,30 @@ This document records all behavioral and mathematical changes introduced in `v1.
 - **Previous behavior:** `RedisStateStore` omitted `abuseScore` in its `HGETALL` and `HSET` operations, silently dropping abuse state on every request and forcing distributed DREB v2 to evaluate with $abuseScore = 0.0$. Operations were also non-atomic read-then-writes.
 - **Corrected behavior:** `abuseScore` is persisted in Redis hashes (`abuse_score`). All load, refill, mid-gap $t_{\text{full}}$ calculation, idle accrual, abuse decay, cost scaling, and state persistence execute atomically inside a single Lua script.
 - **Direction of effect on acceptance rates:** **DECREASES** acceptance rates for repeat-abuser workloads in multi-instance Redis deployments, as escalating abuse penalties are now actually enforced across distributed nodes.
+
+---
+
+### 6. Redis Key TTL Support (Configurable Inactive Key Expiration)
+
+- **Component:** `RedisStateStore.java`, `RedisStateStore.DREB_ALLOW_LUA`.
+- **Previous behavior:** The Lua script never applied `EXPIRE`, allowing keys to persist in Redis indefinitely unless manually flushed.
+- **Corrected behavior:** `RedisStateStore` accepts an optional `keyTtl` constructor parameter (`Duration`, default off). When configured, the TTL in seconds is passed to the atomic Lua script, which executes `redis.call('EXPIRE', key, keyTtl)` on every write.
+- **Direction of effect on acceptance rates:** Neutral during active request streams; after inactivity exceeding TTL, a client entry cleanly expires and re-initializes to fresh capacity upon return (mirroring `InMemoryStateStore` TTL semantics).
+
+---
+
+### 7. Redis Lua Full-Precision IEEE-754 Serialization (`%.17g`)
+
+- **Component:** `RedisStateStore.java` (`DREB_ALLOW_LUA`).
+- **Previous behavior:** Numerical values in Redis hashes were serialized using Lua 5.1's default `tostring()`, which truncates after ~14 significant digits. Near modern epoch timestamps (~$1.76 \times 10^9$), fractional seconds lost several digits of precision.
+- **Corrected behavior:** All numeric fields (`burst_tokens`, `sustained_tokens`, `idle_credit`, `last_refill_ts`, `abuse_score`) are serialized in Lua via `string.format('%.17g', x)`, preserving exact 64-bit IEEE-754 binary64 floating-point representation across Java-Redis round trips.
+- **Direction of effect on acceptance rates:** Neutral; eliminates state drift and sub-millisecond timestamp truncation.
+
+---
+
+### 8. Explicit Fail-Fast for Unsupported `IdleCreditPolicy` on Atomic Stores
+
+- **Component:** `DREBLimiter.java` (`atomicAllowContext()`).
+- **Previous behavior:** If a custom `IdleCreditPolicy` other than `LinearIdleCreditPolicy` was supplied to `DREBLimiter` paired with an atomic store, `atomicAllowContext()` silently defaulted decay to 1.5, cap to 0.0, and gain to 0.0.
+- **Corrected behavior:** Explicitly throws `UnsupportedOperationException` indicating that the policy type is unsupported for atomic backends and requires `LinearIdleCreditPolicy`.
+- **Direction of effect on acceptance rates:** Neutral for standard configurations; prevents silent execution of corrupted parameters under custom policies.

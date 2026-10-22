@@ -449,5 +449,28 @@ public class CoreLimiterTest {
             RateLimiter limiter = Dreb.builder().capacity(10).refillRate(10).build();
             assertThrows(NullPointerException.class, () -> limiter.allow(null));
         }
+
+        @Test
+        @DisplayName("Unsupported IdleCreditPolicy on atomic store throws UnsupportedOperationException")
+        void unsupportedIdleCreditPolicyOnAtomicStore() {
+            StateStore atomicStore = new StateStore() {
+                @Override public boolean supportsAtomicAllow() { return true; }
+                @Override public Decision atomicAllow(String id, int cost, double now, AtomicAllowContext ctx) { return Decision.ALLOW; }
+                @Override public ClientState load(String id, ClientStateInitializer init) { return init.initial(); }
+                @Override public void save(String id, ClientState state) {}
+            };
+            IdleCreditPolicy customPolicy = new IdleCreditPolicy() {
+                @Override public void accrue(ClientState s, double dt, double tFull) {}
+                @Override public void spend(ClientState s, double d) {}
+                @Override public double effectiveCredit(ClientState s) { return 0; }
+            };
+            DREBLimiter limiter = new DREBLimiter(atomicStore, new ManualClock(0.0),
+                    new ConstantRateRefillStrategy(10, 5, 20, 10),
+                    customPolicy, 20);
+
+            UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
+                    () -> limiter.allow("client1", 1));
+            assertTrue(ex.getMessage().contains("unsupported for atomic stores"));
+        }
     }
 }

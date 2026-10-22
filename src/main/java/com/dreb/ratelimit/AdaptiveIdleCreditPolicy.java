@@ -62,7 +62,9 @@ public final class AdaptiveIdleCreditPolicy implements IdleCreditPolicy {
             double effectiveDecay = computeEffectiveDecay(state);
             state.idleCredit = Math.max(0.0, state.idleCredit - deficit * effectiveDecay);
             // Normalize by `cap` so abuseScore stays in a scale-invariant range
-            state.abuseScore += abuseIncrement * (deficit / cap);
+            if (cap > 0.0) {
+                state.abuseScore += abuseIncrement * (deficit / cap);
+            }
         }
     }
 
