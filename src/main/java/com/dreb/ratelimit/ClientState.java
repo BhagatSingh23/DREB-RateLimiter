@@ -32,15 +32,25 @@ public final class ClientState {
 
     public ClientState(double burstTokens, double sustainedTokens,
                         double idleCredit, double lastRefillTs) {
+        this(burstTokens, sustainedTokens, idleCredit, lastRefillTs, 0.0);
+    }
+
+    public ClientState(double burstTokens, double sustainedTokens,
+                        double idleCredit, double lastRefillTs, double abuseScore) {
         this.burstTokens = burstTokens;
         this.sustainedTokens = sustainedTokens;
         this.idleCredit = idleCredit;
         this.lastRefillTs = lastRefillTs;
+        this.abuseScore = abuseScore;
+    }
+
+    public ClientState(ClientState other) {
+        this(other.burstTokens, other.sustainedTokens, other.idleCredit, other.lastRefillTs, other.abuseScore);
     }
 
     /** Creates a freshly-initialized state with both buckets full and no idle credit. */
     public static ClientState fresh(double burstCapacity, double sustainedCapacity, double now) {
-        return new ClientState(burstCapacity, sustainedCapacity, 0.0, now);
+        return new ClientState(burstCapacity, sustainedCapacity, 0.0, now, 0.0);
     }
 
     @Override

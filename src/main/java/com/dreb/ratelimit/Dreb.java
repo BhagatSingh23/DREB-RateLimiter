@@ -113,9 +113,17 @@ public final class Dreb {
             return this;
         }
 
+        private boolean legacyOverdraw = false;
+
         /** Optional. Defaults to {@link InMemoryStateStore} (single JVM instance). Supply a {@link RedisStateStore} for a distributed deployment. */
         public Builder store(StateStore store) {
             this.store = store;
+            return this;
+        }
+
+        /** Optional. Enables legacy overdraw behavior where burst check ignores decay on idle credit. Defaults to false. */
+        public Builder legacyOverdraw(boolean legacyOverdraw) {
+            this.legacyOverdraw = legacyOverdraw;
             return this;
         }
 
@@ -125,7 +133,7 @@ public final class Dreb {
             ConstantRateRefillStrategy refill = new ConstantRateRefillStrategy(
                     p.burstMax, p.burstRate, p.sustainedMax, refillRate);
             LinearIdleCreditPolicy idle = new LinearIdleCreditPolicy(p.idleGain, p.idleCap, idleDecay);
-            return new DREBLimiter(store, clock, refill, idle, p.sustainedMax);
+            return new DREBLimiter(store, clock, refill, idle, p.sustainedMax, legacyOverdraw);
         }
     }
 
@@ -172,6 +180,30 @@ public final class Dreb {
             return this;
         }
 
+        private boolean decayScalingEnabled = true;
+        private boolean sustainedCostScalingEnabled = true;
+        private boolean legacyOverdraw = false;
+
+        public BuilderV2 baseDecay(double baseDecay) {
+            this.baseDecay = baseDecay;
+            return this;
+        }
+
+        public BuilderV2 decayScalingEnabled(boolean decayScalingEnabled) {
+            this.decayScalingEnabled = decayScalingEnabled;
+            return this;
+        }
+
+        public BuilderV2 sustainedCostScalingEnabled(boolean sustainedCostScalingEnabled) {
+            this.sustainedCostScalingEnabled = sustainedCostScalingEnabled;
+            return this;
+        }
+
+        public BuilderV2 legacyOverdraw(boolean legacyOverdraw) {
+            this.legacyOverdraw = legacyOverdraw;
+            return this;
+        }
+
         public BuilderV2 clock(Clock clock) {
             this.clock = clock;
             return this;
@@ -188,8 +220,9 @@ public final class Dreb {
             ConstantRateRefillStrategy refill = new ConstantRateRefillStrategy(
                     p.burstMax, p.burstRate, p.sustainedMax, refillRate);
             AdaptiveIdleCreditPolicy idle = new AdaptiveIdleCreditPolicy(
-                    p.idleGain, p.idleCap, baseDecay, abuseGain, abuseIncrement, abuseDecayRate);
-            return new DREBLimiterV2(store, clock, refill, idle, p.sustainedMax, sustainedCostGain);
+                    p.idleGain, p.idleCap, baseDecay, abuseGain, abuseIncrement, abuseDecayRate, decayScalingEnabled);
+            return new DREBLimiterV2(store, clock, refill, idle, p.sustainedMax, sustainedCostGain,
+                    sustainedCostScalingEnabled, legacyOverdraw);
         }
     }
 

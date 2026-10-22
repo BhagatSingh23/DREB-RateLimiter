@@ -4,24 +4,6 @@ package com.dreb.ratelimit;
  * DREB v2. Extends v1's design with abuse-adaptive cost on BOTH idle credit
  * (via {@link AdaptiveIdleCreditPolicy}) and, critically, the sustained
  * bucket itself.
- *
- * <p>Testing v1 revealed that idle credit is a finite, depletable pool: an
- * adaptive decay rate only changes how fast it drains, not whether it
- * recovers between repeated cycles (accrual is gated on the burst bucket
- * being full, which a repeat abuser's bucket rarely is). Once idle credit
- * is drained -- typically within the first 1-2 abuse cycles -- any
- * idle-credit-only adaptation becomes irrelevant for the remaining cycles,
- * and behavior collapses to being governed purely by the sustained
- * bucket's flat 1:1 cost, identical to v1.
- *
- * <p>v2 therefore also makes the sustained bucket's cost per request
- * abuse-adaptive: a client with no recent history of drawing on idle
- * credit (abuseScore ~ 0) pays exactly {@code cost} sustained tokens per
- * request -- identical to Token Bucket's own rate, no penalty. A client
- * that has been repeatedly drawing on idle credit pays MORE than
- * {@code cost} sustained tokens per request, which persists across
- * however many cycles the abuse continues, unlike the idle-credit-only
- * mechanism.
  */
 public final class DREBLimiterV2 extends AbstractRateLimiter {
 
@@ -29,17 +11,31 @@ public final class DREBLimiterV2 extends AbstractRateLimiter {
     private final AdaptiveIdleCreditPolicy idlePolicy;
     private final double sustainedCapacity;
     private final double sustainedCostGain;
+    private final boolean sustainedCostScalingEnabled;
+    private final boolean legacyOverdraw;
+
+    public DREBLimiterV2(StateStore store, Clock clock,
+                          ConstantRateRefillStrategy refillStrategy,
+                          AdaptiveIdleCreditPolicy idlePolicy,
+                          double sustainedCapacity,
+                          double sustainedCostGain,
+                          boolean sustainedCostScalingEnabled,
+                          boolean legacyOverdraw) {
+        super(store, clock);
+        this.refillStrategy = refillStrategy;
+        this.idlePolicy = idlePolicy;
+        this.sustainedCapacity = sustainedCapacity;
+        this.sustainedCostGain = sustainedCostGain;
+        this.sustainedCostScalingEnabled = sustainedCostScalingEnabled;
+        this.legacyOverdraw = legacyOverdraw;
+    }
 
     public DREBLimiterV2(StateStore store, Clock clock,
                           ConstantRateRefillStrategy refillStrategy,
                           AdaptiveIdleCreditPolicy idlePolicy,
                           double sustainedCapacity,
                           double sustainedCostGain) {
-        super(store, clock);
-        this.refillStrategy = refillStrategy;
-        this.idlePolicy = idlePolicy;
-        this.sustainedCapacity = sustainedCapacity;
-        this.sustainedCostGain = sustainedCostGain;
+        this(store, clock, refillStrategy, idlePolicy, sustainedCapacity, sustainedCostGain, true, false);
     }
 
     @Override
@@ -49,18 +45,34 @@ public final class DREBLimiterV2 extends AbstractRateLimiter {
 
     @Override
     protected void refill(ClientState state, double dt) {
+        if (dt <= 0.0) {
+            return;
+        }
+        double burstBefore = state.burstTokens;
         refillStrategy.refill(state, dt);
-        boolean burstBucketFull = state.burstTokens >= refillStrategy.burstMax();
-        idlePolicy.accrue(state, dt, burstBucketFull);
+        double tFull;
+        if (burstBefore >= refillStrategy.burstMax()) {
+            tFull = dt;
+        } else if (refillStrategy.burstRate() <= 0.0) {
+            tFull = 0.0;
+        } else {
+            double timeToFill = (refillStrategy.burstMax() - burstBefore) / refillStrategy.burstRate();
+            tFull = Math.max(0.0, dt - timeToFill);
+        }
+        idlePolicy.accrue(state, dt, tFull);
     }
 
     @Override
     protected Decision checkAndConsume(ClientState state, int cost) {
-        double effectiveBurst = state.burstTokens + state.idleCredit;
+        double effectiveBurst = legacyOverdraw
+                ? (state.burstTokens + state.idleCredit)
+                : (state.burstTokens + idlePolicy.effectiveCredit(state));
 
-        // Well-behaved clients (abuseScore ~ 0) pay exactly `cost` --
-        // identical to Token Bucket. Detected abusers pay more.
-        double sustainedCost = cost * (1.0 + sustainedCostGain * state.abuseScore);
+        // Well-behaved clients (abuseScore ~ 0) pay exactly `cost`.
+        // Detected abusers pay more if sustained cost scaling is enabled.
+        double sustainedCost = sustainedCostScalingEnabled
+                ? cost * (1.0 + sustainedCostGain * state.abuseScore)
+                : cost;
 
         if (state.sustainedTokens >= sustainedCost && effectiveBurst >= cost) {
             state.sustainedTokens -= sustainedCost;
@@ -71,4 +83,23 @@ public final class DREBLimiterV2 extends AbstractRateLimiter {
         }
         return Decision.DENY;
     }
+
+    @Override
+    protected AtomicAllowContext atomicAllowContext() {
+        return AtomicAllowContext.forDrebV2(
+                refillStrategy.burstMax(), refillStrategy.burstRate(),
+                sustainedCapacity, refillStrategy.sustainedRate(),
+                idlePolicy.gain(), idlePolicy.cap(),
+                idlePolicy.baseDecay(), idlePolicy.abuseGain(), idlePolicy.abuseIncrement(), idlePolicy.abuseDecayRate(),
+                sustainedCostGain,
+                idlePolicy.isDecayScalingEnabled(), sustainedCostScalingEnabled,
+                legacyOverdraw);
+    }
+
+    public ConstantRateRefillStrategy refillStrategy() { return refillStrategy; }
+    public AdaptiveIdleCreditPolicy idlePolicy() { return idlePolicy; }
+    public double sustainedCapacity() { return sustainedCapacity; }
+    public double sustainedCostGain() { return sustainedCostGain; }
+    public boolean isSustainedCostScalingEnabled() { return sustainedCostScalingEnabled; }
+    public boolean isLegacyOverdraw() { return legacyOverdraw; }
 }

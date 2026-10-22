@@ -1,15 +1,12 @@
 package com.dreb.ratelimit;
 
+import java.util.List;
 import java.util.Map;
 
 /**
  * Minimal abstraction over whatever Redis client the deployment uses
  * (Jedis, Lettuce, etc.), so {@link RedisStateStore} has no compile-time
- * dependency on a specific client library. Implement this with a thin
- * adapter around your chosen client's HGETALL / HSET (or, for the atomic
- * production path described in Section 5.2 and 6 of the paper, an EVAL of
- * a single Lua script performing refill + check + consume + save
- * server-side in one round trip).
+ * dependency on a specific client library.
  */
 public interface RedisHashClient {
 
@@ -18,4 +15,12 @@ public interface RedisHashClient {
 
     /** Equivalent to Redis HSET key field value [field value ...]. */
     void hset(String key, Map<String, String> fields);
+
+    /**
+     * Executes a server-side Lua script atomically with the given keys and arguments.
+     * Returns the integer result returned by the script.
+     */
+    default long eval(String script, List<String> keys, List<String> args) {
+        throw new UnsupportedOperationException("eval is not implemented on this RedisHashClient");
+    }
 }

@@ -37,4 +37,9 @@ public final class TokenBucketLimiter extends AbstractRateLimiter {
         }
         return Decision.DENY;
     }
+
+    @Override
+    protected AtomicAllowContext atomicAllowContext() {
+        return AtomicAllowContext.forTokenBucket(capacity, refillRate);
+    }
 }

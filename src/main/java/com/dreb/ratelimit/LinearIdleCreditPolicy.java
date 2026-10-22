@@ -19,9 +19,9 @@ public final class LinearIdleCreditPolicy implements IdleCreditPolicy {
     }
 
     @Override
-    public void accrue(ClientState state, double dt, boolean burstBucketFull) {
-        if (burstBucketFull) {
-            state.idleCredit = Math.min(cap, state.idleCredit + dt * gain);
+    public void accrue(ClientState state, double dt, double tFull) {
+        if (tFull > 0) {
+            state.idleCredit = Math.min(cap, state.idleCredit + tFull * gain);
         }
     }
 
@@ -31,4 +31,16 @@ public final class LinearIdleCreditPolicy implements IdleCreditPolicy {
             state.idleCredit = Math.max(0.0, state.idleCredit - deficit * decay);
         }
     }
+
+    @Override
+    public double effectiveCredit(ClientState state) {
+        if (decay <= 0) {
+            return state.idleCredit;
+        }
+        return state.idleCredit / decay;
+    }
+
+    public double gain() { return gain; }
+    public double cap() { return cap; }
+    public double decay() { return decay; }
 }

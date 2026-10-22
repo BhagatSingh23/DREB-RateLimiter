@@ -28,4 +28,16 @@ public final class ConstantRateRefillStrategy implements RefillStrategy {
     public double burstMax() {
         return burstMax;
     }
+
+    public double burstRate() {
+        return burstRate;
+    }
+
+    public double sustainedMax() {
+        return sustainedMax;
+    }
+
+    public double sustainedRate() {
+        return sustainedRate;
+    }
 }

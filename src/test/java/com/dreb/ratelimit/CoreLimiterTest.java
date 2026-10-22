@@ -71,7 +71,7 @@ public class CoreLimiterTest {
             DREBLimiter limiter = buildLimiter(clock);
 
             // Touch client at t=0 to create state with full burst bucket
-            limiter.allow("idle-client", 0);
+            limiter.peekState("idle-client");
 
             // Advance 10 seconds with no requests — burst stays full, idle credit accrues
             // idleGain=5 → +50 idle credit, capped at cap=20, so idleCredit=20
@@ -127,6 +127,123 @@ public class CoreLimiterTest {
             }
             assertEquals(2, allowed, "Expected 2 allows at cost=5 with burstMax=10");
         }
+
+        @Test
+        @DisplayName("P1: Bucket empty and refills mid-gap: burstMax=10, rate=10, dt=2s -> credit for 1s")
+        void midGapRefillAccrual() {
+            ManualClock clock = new ManualClock(0.0);
+            InMemoryStateStore store = new InMemoryStateStore();
+            ConstantRateRefillStrategy refill = new ConstantRateRefillStrategy(10, 10, 50, 10);
+            LinearIdleCreditPolicy idle = new LinearIdleCreditPolicy(5, 20, 1.5);
+            DREBLimiter limiter = new DREBLimiter(store, clock, refill, idle, 50);
+
+            // Drain all 10 burst tokens at t=0
+            for (int i = 0; i < 10; i++) {
+                assertEquals(Decision.ALLOW, limiter.allow("c-mid", 1));
+            }
+            clock.set(2.0); // 1s to refill, 1s full
+            limiter.allow("c-mid", 1);
+            ClientState s = limiter.peekState("c-mid");
+            assertEquals(5.0, s.idleCredit, 1e-6, "Credit should be 1.0s * 5 = 5.0");
+        }
+
+        @Test
+        @DisplayName("P1: Exact fill: dt equals time to fill -> 0 credit accrued")
+        void exactFillAccrual() {
+            ManualClock clock = new ManualClock(0.0);
+            InMemoryStateStore store = new InMemoryStateStore();
+            ConstantRateRefillStrategy refill = new ConstantRateRefillStrategy(10, 10, 50, 10);
+            LinearIdleCreditPolicy idle = new LinearIdleCreditPolicy(5, 20, 1.5);
+            DREBLimiter limiter = new DREBLimiter(store, clock, refill, idle, 50);
+
+            // Drain all 10 burst tokens
+            for (int i = 0; i < 10; i++) limiter.allow("c-exact", 1);
+            // It takes exactly 1.0s to fill from 0 to 10 at rate 10
+            clock.set(1.0);
+            limiter.allow("c-exact", 1);
+            ClientState s = limiter.peekState("c-exact");
+            assertEquals(0.0, s.idleCredit, 1e-6, "Credit should be 0.0 when bucket only just filled at dt boundary");
+        }
+
+        @Test
+        @DisplayName("P1: Already full: bucket full for entire dt -> credit for full dt")
+        void alreadyFullAccrual() {
+            ManualClock clock = new ManualClock(0.0);
+            InMemoryStateStore store = new InMemoryStateStore();
+            ConstantRateRefillStrategy refill = new ConstantRateRefillStrategy(10, 10, 50, 10);
+            LinearIdleCreditPolicy idle = new LinearIdleCreditPolicy(5, 20, 1.5);
+            DREBLimiter limiter = new DREBLimiter(store, clock, refill, idle, 50);
+
+            limiter.peekState("c-full"); // initial full state at t=0
+            clock.set(2.0); // full for all 2.0s
+            limiter.allow("c-full", 1);
+            ClientState s = limiter.peekState("c-full");
+            assertEquals(10.0, s.idleCredit, 1e-6, "Credit should be 2.0s * 5 = 10.0");
+        }
+
+        @Test
+        @DisplayName("P1: Long idle: idle credit is capped at idleCap")
+        void longIdleAccrualCapped() {
+            ManualClock clock = new ManualClock(0.0);
+            InMemoryStateStore store = new InMemoryStateStore();
+            ConstantRateRefillStrategy refill = new ConstantRateRefillStrategy(10, 10, 50, 10);
+            LinearIdleCreditPolicy idle = new LinearIdleCreditPolicy(5, 20, 1.5);
+            DREBLimiter limiter = new DREBLimiter(store, clock, refill, idle, 50);
+
+            limiter.peekState("c-cap");
+            clock.set(100.0); // 100s idle -> 500 credit potential, capped at 20
+            limiter.allow("c-cap", 1);
+            ClientState s = limiter.peekState("c-cap");
+            assertEquals(20.0, s.idleCredit, 1e-6, "Credit should cap at 20.0");
+        }
+
+        @Test
+        @DisplayName("P1: Zero refill rate: burst bucket cannot refill, so 0 idle credit")
+        void zeroRefillRateAccrual() {
+            ManualClock clock = new ManualClock(0.0);
+            InMemoryStateStore store = new InMemoryStateStore();
+            ConstantRateRefillStrategy refill = new ConstantRateRefillStrategy(10, 0, 50, 0);
+            LinearIdleCreditPolicy idle = new LinearIdleCreditPolicy(5, 20, 1.5);
+            DREBLimiter limiter = new DREBLimiter(store, clock, refill, idle, 50);
+
+            for (int i = 0; i < 10; i++) limiter.allow("c-zero", 1);
+            clock.set(10.0); // 10s pass, but rate is 0
+            limiter.allow("c-zero", 1);
+            ClientState s = limiter.peekState("c-zero");
+            assertEquals(0.0, s.idleCredit, 1e-6, "Credit should be 0 when burst rate is 0");
+        }
+
+        @Test
+        @DisplayName("P1: dt=0: no credit accrued")
+        void dtZeroAccrual() {
+            ManualClock clock = new ManualClock(0.0);
+            InMemoryStateStore store = new InMemoryStateStore();
+            ConstantRateRefillStrategy refill = new ConstantRateRefillStrategy(10, 10, 50, 10);
+            LinearIdleCreditPolicy idle = new LinearIdleCreditPolicy(5, 20, 1.5);
+            DREBLimiter limiter = new DREBLimiter(store, clock, refill, idle, 50);
+
+            limiter.allow("c-dt0", 1);
+            clock.set(0.0);
+            limiter.allow("c-dt0", 1);
+            ClientState s = limiter.peekState("c-dt0");
+            assertEquals(0.0, s.idleCredit, 1e-6);
+        }
+
+        @Test
+        @DisplayName("P1: Negative dt: clock rollback causes no credit and no state corruption")
+        void negativeDtAccrual() {
+            ManualClock clock = new ManualClock(10.0);
+            InMemoryStateStore store = new InMemoryStateStore();
+            ConstantRateRefillStrategy refill = new ConstantRateRefillStrategy(10, 10, 50, 10);
+            LinearIdleCreditPolicy idle = new LinearIdleCreditPolicy(5, 20, 1.5);
+            DREBLimiter limiter = new DREBLimiter(store, clock, refill, idle, 50);
+
+            limiter.allow("c-neg", 1);
+            clock.set(5.0); // negative dt
+            limiter.allow("c-neg", 1);
+            ClientState s = limiter.peekState("c-neg");
+            assertEquals(0.0, s.idleCredit, 1e-6);
+        }
     }
 
     // ── DREBLimiterV2 direct tests ──────────────────────────────────────
@@ -169,7 +286,7 @@ public class CoreLimiterTest {
             DREBLimiterV2 limiter = new DREBLimiterV2(store, clock, refill, idle, 30, 1.0);
 
             // First cycle: idle then burst
-            limiter.allow("abuser", 0); // touch at t=0
+            limiter.peekState("abuser"); // touch at t=0
             clock.set(20.0); // idle
             int firstCycle = 0;
             for (int i = 0; i < 50; i++) {

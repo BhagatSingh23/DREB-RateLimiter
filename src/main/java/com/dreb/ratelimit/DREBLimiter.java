@@ -11,15 +11,25 @@ public final class DREBLimiter extends AbstractRateLimiter {
     private final ConstantRateRefillStrategy refillStrategy;
     private final IdleCreditPolicy idlePolicy;
     private final double sustainedCapacity;
+    private final boolean legacyOverdraw;
+
+    public DREBLimiter(StateStore store, Clock clock,
+                        ConstantRateRefillStrategy refillStrategy,
+                        IdleCreditPolicy idlePolicy,
+                        double sustainedCapacity,
+                        boolean legacyOverdraw) {
+        super(store, clock);
+        this.refillStrategy = refillStrategy;
+        this.idlePolicy = idlePolicy;
+        this.sustainedCapacity = sustainedCapacity;
+        this.legacyOverdraw = legacyOverdraw;
+    }
 
     public DREBLimiter(StateStore store, Clock clock,
                         ConstantRateRefillStrategy refillStrategy,
                         IdleCreditPolicy idlePolicy,
                         double sustainedCapacity) {
-        super(store, clock);
-        this.refillStrategy = refillStrategy;
-        this.idlePolicy = idlePolicy;
-        this.sustainedCapacity = sustainedCapacity;
+        this(store, clock, refillStrategy, idlePolicy, sustainedCapacity, false);
     }
 
     @Override
@@ -29,14 +39,28 @@ public final class DREBLimiter extends AbstractRateLimiter {
 
     @Override
     protected void refill(ClientState state, double dt) {
+        if (dt <= 0.0) {
+            return;
+        }
+        double burstBefore = state.burstTokens;
         refillStrategy.refill(state, dt);
-        boolean burstBucketFull = state.burstTokens >= refillStrategy.burstMax();
-        idlePolicy.accrue(state, dt, burstBucketFull);
+        double tFull;
+        if (burstBefore >= refillStrategy.burstMax()) {
+            tFull = dt;
+        } else if (refillStrategy.burstRate() <= 0.0) {
+            tFull = 0.0;
+        } else {
+            double timeToFill = (refillStrategy.burstMax() - burstBefore) / refillStrategy.burstRate();
+            tFull = Math.max(0.0, dt - timeToFill);
+        }
+        idlePolicy.accrue(state, dt, tFull);
     }
 
     @Override
     protected Decision checkAndConsume(ClientState state, int cost) {
-        double effectiveBurst = state.burstTokens + state.idleCredit;
+        double effectiveBurst = legacyOverdraw
+                ? (state.burstTokens + state.idleCredit)
+                : (state.burstTokens + idlePolicy.effectiveCredit(state));
 
         if (state.sustainedTokens >= cost && effectiveBurst >= cost) {
             state.sustainedTokens -= cost;
@@ -47,4 +71,20 @@ public final class DREBLimiter extends AbstractRateLimiter {
         }
         return Decision.DENY;
     }
+
+    @Override
+    protected AtomicAllowContext atomicAllowContext() {
+        double decay = (idlePolicy instanceof LinearIdleCreditPolicy linear) ? linear.decay() : 1.5;
+        double gain = (idlePolicy instanceof LinearIdleCreditPolicy linear) ? linear.gain() : 0.0;
+        double cap = (idlePolicy instanceof LinearIdleCreditPolicy linear) ? linear.cap() : 0.0;
+        return AtomicAllowContext.forDrebV1(
+                refillStrategy.burstMax(), refillStrategy.burstRate(),
+                sustainedCapacity, refillStrategy.sustainedRate(),
+                gain, cap, decay, legacyOverdraw);
+    }
+
+    public ConstantRateRefillStrategy refillStrategy() { return refillStrategy; }
+    public IdleCreditPolicy idlePolicy() { return idlePolicy; }
+    public double sustainedCapacity() { return sustainedCapacity; }
+    public boolean isLegacyOverdraw() { return legacyOverdraw; }
 }

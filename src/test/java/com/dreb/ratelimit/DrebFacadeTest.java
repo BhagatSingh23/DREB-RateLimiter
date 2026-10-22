@@ -88,7 +88,7 @@ public class DrebFacadeTest {
 
         RateLimiter idled = Dreb.builder().capacity(20).refillRate(5).clock(clock).build();
         clock.set(0.0);
-        idled.allow("idled-client", 0); // touch at t=0
+        ((AbstractRateLimiter) idled).peekState("idled-client"); // touch at t=0
         clock.set(60.0); // idle 60s before the burst
         int idledAccepted = 0;
         for (int i = 0; i < 30; i++) {

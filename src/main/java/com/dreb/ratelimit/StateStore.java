@@ -18,6 +18,21 @@ public interface StateStore {
     /** Persists {@code state} for {@code clientId}. */
     void save(String clientId, ClientState state);
 
+    /**
+     * Whether this store supports atomic allow operations executed entirely on the storage backend
+     * (e.g. via Redis Lua scripts).
+     */
+    default boolean supportsAtomicAllow() {
+        return false;
+    }
+
+    /**
+     * Executes atomic refill, check, consume, and save in a single operation.
+     */
+    default Decision atomicAllow(String clientId, int cost, double now, AtomicAllowContext context) {
+        throw new UnsupportedOperationException("Atomic allow not supported by " + getClass().getName());
+    }
+
     /** Factory for a brand-new client's initial state. */
     interface ClientStateInitializer {
         ClientState initial();
