@@ -74,3 +74,12 @@ This document records all behavioral and mathematical changes introduced in `v1.
 - **Previous behavior:** If a custom `IdleCreditPolicy` other than `LinearIdleCreditPolicy` was supplied to `DREBLimiter` paired with an atomic store, `atomicAllowContext()` silently defaulted decay to 1.5, cap to 0.0, and gain to 0.0.
 - **Corrected behavior:** Explicitly throws `UnsupportedOperationException` indicating that the policy type is unsupported for atomic backends and requires `LinearIdleCreditPolicy`.
 - **Direction of effect on acceptance rates:** Neutral for standard configurations; prevents silent execution of corrupted parameters under custom policies.
+
+---
+
+### 9. TokenBucketLimiter State Parity across In-Memory and Redis Atomic Backends
+
+- **Component:** `TokenBucketLimiter.java`.
+- **Previous behavior:** In-memory `TokenBucketLimiter` initialized and maintained only `state.burstTokens`, leaving `state.sustainedTokens` permanently at `0.0`. However, `AtomicAllowContext.forTokenBucket(capacity, refillRate)` parameterized Redis Lua with `burstMax = sustainedMax = capacity` and `burstRate = sustainedRate = refillRate`. Consequently, Redis stored `sustained_tokens = burst_tokens`, causing state divergence across backends.
+- **Corrected behavior:** `TokenBucketLimiter` in Java maintains `sustainedTokens = burstTokens` on initialization, refill, and consumption, guaranteeing full state parity across in-memory and Redis atomic stores.
+- **Direction of effect on acceptance rates:** Neutral; Token Bucket admission criteria and decisions remain identical.

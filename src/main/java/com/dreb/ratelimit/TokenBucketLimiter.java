@@ -19,20 +19,20 @@ public final class TokenBucketLimiter extends AbstractRateLimiter {
 
     @Override
     protected ClientState initialState(double now) {
-        // sustainedTokens/idleCredit are unused by this algorithm but kept
-        // for a uniform ClientState shape across limiter implementations.
-        return new ClientState(capacity, 0.0, 0.0, now);
+        return ClientState.fresh(capacity, capacity, now);
     }
 
     @Override
     protected void refill(ClientState state, double dt) {
         state.burstTokens = Math.min(capacity, state.burstTokens + dt * refillRate);
+        state.sustainedTokens = state.burstTokens;
     }
 
     @Override
     protected Decision checkAndConsume(ClientState state, int cost) {
         if (state.burstTokens >= cost) {
             state.burstTokens -= cost;
+            state.sustainedTokens = state.burstTokens;
             return Decision.ALLOW;
         }
         return Decision.DENY;
@@ -42,4 +42,7 @@ public final class TokenBucketLimiter extends AbstractRateLimiter {
     protected AtomicAllowContext atomicAllowContext() {
         return AtomicAllowContext.forTokenBucket(capacity, refillRate);
     }
+
+    public double capacity() { return capacity; }
+    public double refillRate() { return refillRate; }
 }
