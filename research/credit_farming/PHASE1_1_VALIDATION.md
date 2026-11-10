@@ -13,8 +13,8 @@
 This report delivers the independent, rigorous validation of **Phase 1** results for the Dual-Rate Elastic Bucket (DREB) project. 
 
 In accordance with strict scientific guidelines:
-1. **Retraction of Blanket Dominance Claims:** We explicitly withdraw any claim that DREB-AC is "unconditionally Pareto-dominant" over all rate limiters. While DREB-AC strictly dominates original DREB v1 and DREB v2 across all tested metrics, it exists on a multi-objective Pareto trade-off frontier alongside smaller Static Dual Buckets and Token Bucket variants.
-2. **Closed-Loop Adversarial Vulnerability of DREB v2:** Under a closed-loop AIMD feedback prober that observes HTTP 429 rejections, **original DREB v2 collapses, admitting $0.7520R$ (75.2% of line rate)**. DREB-AC successfully suppresses this adversary to **$0.1229R$–$0.1286R$** (an 83% reduction).
+1. **Retraction of Blanket Dominance Claims:** We explicitly withdraw any claim that DREB-AC is "unconditionally Pareto-dominant" over all rate limiters. While DREB-AC strictly dominates original DREB v1, DREB v2, and large Token Bucket across functional metrics, it exists on a multi-objective Pareto trade-off frontier alongside smaller Static Dual Buckets and small Token Bucket variants that achieve lower adversary admission by rejecting legitimate bursts.
+2. **Closed-Loop Adversarial Vulnerability of DREB v2:** Under a closed-loop AIMD feedback prober that observes HTTP 429 rejections, **original DREB v2 collapses, admitting $0.7520R$ (75.2% of line rate)**. DREB-AC successfully suppresses this adversary to **$0.1229R$–$0.1286R$** (an 82.9%–83.7% reduction vs DREB v2). Across all 5 adversary strategies, DREB-AC reduces attacker admission by 33.2% to 62.1% relative to DREB v1, and by 37.0% to 82.9% relative to DREB v2.
 3. **Recovery Mechanism Safety Proof:** We mathematically prove that an adversary cannot exploit the recovery equation ($K \to 0$) to gain higher throughput. The steady-state rate of credit extraction under cyclic attacks is strictly upper-bounded by $\text{baseCap} \cdot \lambda_{\text{rec}} \approx 0.043 R$. Waiting for complete recovery ($K = 0$) forces long idle periods that collapse total attacker throughput to $0.075 R$.
 4. **Statistical Rigor:** All findings are validated across $N = 30$ held-out seeds (2000–2029) reporting Means, Medians, Standard Deviations, and 95% Percentile Bootstrap Confidence Intervals.
 
@@ -185,7 +185,7 @@ Based on the multi-objective Pareto evaluation across 30 seeds:
 ## 7. Status of Phase 1 Conclusions
 
 1. **Original Conclusion 1 (DREB v2 Fails Against Credit Farming):** **CONFIRMED & STRENGTHENED.** Under closed-loop AIMD probers, DREB v2's failure is even worse than initially observed, leaking up to $0.752R$.
-2. **Original Conclusion 2 (DREB-AC Effectively Suppresses Farming):** **CONFIRMED.** DREB-AC suppresses adversarial throughput across all 5 adversary models by 62%–83%.
+2. **Original Conclusion 2 (DREB-AC Effectively Suppresses Farming):** **CONFIRMED.** DREB-AC suppresses adversarial throughput across all 5 adversary models by 33.2% to 62.1% relative to DREB v1, by 37.0% to 82.9% relative to DREB v2, and by 32.6% to 62.1% relative to Token Bucket (C, R).
 3. **Original Conclusion 3 ("DREB-AC is Pareto-Dominant"):** **REFUTED & CORRECTED.** As established in Section 5, DREB-AC dominates DREB v1, DREB v2, and large Token Bucket, but trades off against small Token Bucket and small Static Dual Buckets.
 
 ---
