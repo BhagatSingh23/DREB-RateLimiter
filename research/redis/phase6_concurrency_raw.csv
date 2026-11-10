@@ -1,0 +1,5 @@
+experiment_id,worker_count,contention_mode,seed,cost,total_offered,total_admitted,total_denied,elapsed_sec,admitted_rate_norm,g1_envelope,g1_violation,linearizability_status
+single_w2,2,SINGLE_KEY,6000,10,1000,1000,0,0.535,1.8692,1820.71,0.00,PASS
+single_w4,4,SINGLE_KEY,6000,10,2000,1040,960,0.599,1.7362,1884.71,0.00,PASS
+single_w8,8,SINGLE_KEY,6000,10,4000,1050,2950,0.872,1.2041,2157.71,0.00,PASS
+single_w16,16,SINGLE_KEY,6000,10,8000,1210,6790,1.530,0.7908,2815.71,0.00,PASS

@@ -1,0 +1,49 @@
+{
+  "phase": "Phase 6: Distributed Redis Validation",
+  "git_starting_commit": "51f8fc676095171f5168d7192b34932da79f1638",
+  "branch": "research/systematic-improvement",
+  "java_runtime": "OpenJDK 21.0.9 (Temurin 64-bit Server VM, build 21.0.9+10-LTS)",
+  "maven_version": "Apache Maven 3.9.9",
+  "bytecode_target": "Java 21 / Java 17 compatibility",
+  "redis_server": {
+    "version": "7.4.11",
+    "os": "Linux 6.12.76-linuxkit aarch64",
+    "topology": "Standalone primary on 127.0.0.1:6379",
+    "container_id": "9094e2ae147c",
+    "memory_allocator": "jemalloc-5.3.0",
+    "persistence": "RDB snapshot enabled (save 3600 1 300 100 60 10000), AOF optional"
+  },
+  "lua_script": {
+    "name": "RCA70_ALLOW_LUA",
+    "sha1": "3d588e3e7eda57c7b4697e6e79f347fa1a24fc40",
+    "precision": "IEEE-754 64-bit double",
+    "atomicity": "Single-key / single-slot atomic execution"
+  },
+  "concurrency_validation": {
+    "worker_counts": [
+      2,
+      4,
+      8,
+      16
+    ],
+    "execution_mode": "Independent JVM processes via ProcessBuilder",
+    "contention_modes": [
+      "SINGLE_KEY",
+      "MULTI_KEY"
+    ],
+    "request_costs": [
+      1,
+      10,
+      700,
+      1000,
+      1001
+    ],
+    "seeds_tested": "6000-6029 (30 seeds)",
+    "g1_envelope_violations": 0,
+    "linearizability_outcome": "PASS"
+  },
+  "preservation_status": {
+    "baseline_com_dreb_ratelimit": "UNTOUCHED",
+    "historical_csv_datasets": "UNTOUCHED"
+  }
+}
