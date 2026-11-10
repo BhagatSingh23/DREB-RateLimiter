@@ -149,4 +149,97 @@ public class DrebRcaPropertiesTest {
         // Abuse score increased by deficit / idleCap = 300 / 450 = 0.6667
         assertEquals(300.0 / 450.0, s.abuseScore, 1e-6);
     }
+
+    public static double computeMinIdleDuration(double B0, double S0, double I0, double K0, int cost) {
+        double bMax = 700.0;
+        double bRate = 5000.0 / 3.0;
+        double sMax = 9000.0 / 7.0;
+        double sRate = 1000.0;
+        double baseCap = 450.0;
+        double baseDecay = 1.5;
+        double gain = 1500.0;
+        double beta = 0.75;
+        double lambdaRec = 0.05;
+
+        if (cost > Math.min(sMax, bMax + baseCap / baseDecay)) {
+            return Double.POSITIVE_INFINITY;
+        }
+
+        double tauS = Math.max(0.0, (cost - S0) / sRate);
+
+        if (cost <= bMax) {
+            double neededB = Math.max(0.0, cost - I0 / baseDecay);
+            double tauB = Math.max(0.0, (neededB - B0) / bRate);
+            return Math.max(tauS, tauB);
+        }
+
+        double d = cost - bMax;
+        double iReq = baseDecay * d;
+        double kTarget = Math.max(0.0, (baseCap / iReq - 1.0) / beta);
+        double tauK = Math.max(0.0, (K0 - kTarget) / lambdaRec);
+
+        double tFill = Math.max(0.0, (bMax - B0) / bRate);
+        double tauCredit = tFill + Math.max(0.0, (iReq - I0) / gain);
+
+        return Math.max(tauS, Math.max(tauK, tauCredit));
+    }
+
+    @Property(tries = 1)
+    void verifyAllTenEdgeCases() {
+        ManualClock clock = new ManualClock(0.0);
+        InMemoryStateStore store = new InMemoryStateStore();
+        DREBLimiter limiter = DrebRcaPolicyFactory.createRca70Limiter(store, clock, C, R);
+
+        record TestCase(String name, double b0, double s0, double i0, double k0, int cost, double expectedTau) {}
+        List<TestCase> cases = List.of(
+                new TestCase("Case 1 (Reference RCA70)", 0.0, 280.0, 0.0, 0.0, 1000, 0.720),
+                new TestCase("Case 2 (Depleted S)", 0.0, 0.0, 0.0, 0.0, 1000, 1.000),
+                new TestCase("Case 3 (K0 = 0.5)", 0.0, 280.0, 0.0, 0.5, 1000, 10.000),
+                new TestCase("Case 4 (I0 = 225)", 0.0, 280.0, 225.0, 0.0, 1000, 0.720),
+                new TestCase("Case 5 (B0 = Bmax)", 700.0, 1000.0, 0.0, 0.0, 1000, 0.300),
+                new TestCase("Case 6 (S0 = Smax)", 0.0, 1285.71, 0.0, 0.0, 1000, 0.720),
+                new TestCase("Case 7 (c = Bmax)", 0.0, 700.0, 0.0, 0.0, 700, 0.420),
+                new TestCase("Case 8 (c = 850)", 0.0, 850.0, 0.0, 0.0, 850, 0.570),
+                new TestCase("Case 9 (c = 850, K0=0.5)", 0.0, 850.0, 0.0, 0.5, 850, 0.570),
+                new TestCase("Case 10 (c = 1100)", 700.0, 1285.71, 450.0, 0.0, 1100, Double.POSITIVE_INFINITY)
+        );
+
+        for (TestCase tc : cases) {
+            double calculated = computeMinIdleDuration(tc.b0, tc.s0, tc.i0, tc.k0, tc.cost);
+            if (Double.isInfinite(tc.expectedTau)) {
+                assertTrue(Double.isInfinite(calculated), tc.name + " should be infinite");
+                continue;
+            }
+            assertEquals(tc.expectedTau, calculated, 1e-4, tc.name + " formula calculation mismatch");
+
+            // Verify in limiter:
+            // At tau - 0.005s: must DENY
+            if (tc.expectedTau > 0.010) {
+                ClientState sDeny = ClientState.fresh(700.0, 1285.71, 0.0);
+                sDeny.burstTokens = tc.b0;
+                sDeny.sustainedTokens = tc.s0;
+                sDeny.idleCredit = tc.i0;
+                sDeny.abuseScore = tc.k0;
+                sDeny.lastRefillTs = 0.0;
+                store.save("client_deny_" + tc.name, sDeny);
+
+                clock.set(tc.expectedTau - 0.005);
+                Decision dDeny = limiter.allow("client_deny_" + tc.name, tc.cost);
+                assertEquals(Decision.DENY, dDeny, tc.name + " must DENY before min idle duration");
+            }
+
+            // At tau: must ALLOW
+            ClientState sAllow = ClientState.fresh(700.0, 1285.71, 0.0);
+            sAllow.burstTokens = tc.b0;
+            sAllow.sustainedTokens = tc.s0;
+            sAllow.idleCredit = tc.i0;
+            sAllow.abuseScore = tc.k0;
+            sAllow.lastRefillTs = 0.0;
+            store.save("client_allow_" + tc.name, sAllow);
+
+            clock.set(tc.expectedTau);
+            Decision dAllow = limiter.allow("client_allow_" + tc.name, tc.cost);
+            assertEquals(Decision.ALLOW, dAllow, tc.name + " must ALLOW at min idle duration");
+        }
+    }
 }
