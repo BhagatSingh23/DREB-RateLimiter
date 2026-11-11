@@ -1,0 +1,84 @@
+{
+  "phase": "Phase 7.2: Replication Acknowledgement and Clock-Discontinuity Guarantee Audit",
+  "git_starting_commit": "90730b1",
+  "branch": "research/systematic-improvement",
+  "audit_date": "2026-11-11",
+  "java_runtime": {
+    "vm_name": "OpenJDK 64-Bit Server VM",
+    "version": "21.0.9+10-LTS",
+    "compiler_target": "Java 17 compatibility bytecode",
+    "maven_version": "3.9.9",
+    "client_library": "redis.clients:jedis:5.1.3"
+  },
+  "redis_environments": {
+    "standalone": {
+      "engine_version": "7.4.11",
+      "host": "127.0.0.1:6379",
+      "persistence": "appendfsync everysec",
+      "role": "master"
+    },
+    "cluster": {
+      "engine_version": "7.4.11",
+      "nodes": [
+        {"port": 7001, "role": "master", "replica_port": 7006},
+        {"port": 7002, "role": "master", "replica_port": 7004},
+        {"port": 7005, "role": "master", "replica_port": 7003}
+      ],
+      "total_slots": 16384
+    }
+  },
+  "workstream_audit_findings": {
+    "workstream_a_wait_semantics": {
+      "lua_script_limitation": "WAIT called inside EVAL cannot block; returns immediately without waiting for writes in that script",
+      "connection_affinity_requirement": "EVAL and WAIT must execute on the exact same Jedis connection; JedisCluster connection pools break affinity without explicit connection pinning",
+      "replica_ack_vs_durability": "WAIT 1 confirms in-memory replication offset only; does NOT guarantee disk fsync on replica",
+      "offset_divergence": "Failover must elect highest-offset replica to avoid rollback"
+    },
+    "workstream_b_failure_contract": {
+      "eval_ok_wait_ok": "ALLOW (DURABLE)",
+      "eval_ok_wait_timeout": "DURABILITY_TIMEOUT (Fail-closed rejecting or returning retryable exception)",
+      "eval_network_timeout": "AMBIGUOUS_TIMEOUT (Requires idempotent retry)",
+      "wait_insufficient_replicas": "DURABILITY_INSUFFICIENT_REPLICAS"
+    },
+    "workstream_c_g1_replication": {
+      "async_replication_counterexample": "Admitted 1400.0 tokens vs 1295.71 G1 bound (+104.29 excess)",
+      "sync_wait_replication_mode": "Admitted 700.0 tokens, second burst denied on replica (0.0 excess)",
+      "restricted_failure_model": "G1 holds under single ungraceful primary crash IF and ONLY IF: (1) WAIT confirmed on >=1 replica, (2) that specific replica is promoted, (3) replica does not crash before disk fsync"
+    },
+    "workstream_d_clock_discontinuities": {
+      "forward_jump_1s_excess_tokens": 104.2857,
+      "forward_jump_10s_excess_tokens": 104.2857,
+      "forward_jump_60s_excess_tokens": 404.2857,
+      "bucket_caps_defense": "INSUFFICIENT (Bucket caps prevent infinite tokens, but cannot prevent G1 violation over physical time T)",
+      "backward_jump_handling": "PASS (Clamped to dt=0; causes temporary refill freeze for Delta_t_backward without state rollback)"
+    },
+    "workstream_e_latency_profile": {
+      "sample_count": 200,
+      "lua_execution_latency_ms": {"p50": 0.082, "p95": 0.190, "p99": 0.310},
+      "standalone_roundtrip_ms": {"p50": 0.145, "p95": 0.320, "p99": 0.480},
+      "try_acquire_async_ms": {"p50": 0.259, "p95": 0.547, "p99": 0.667},
+      "try_acquire_sync_wait_ms": {"p50": 0.348, "p95": 0.729, "p99": 1.301},
+      "wait_timeout_ms": {"p50": 304.5, "p95": 312.1, "p99": 318.0}
+    },
+    "workstream_f_gate_reclassification": {
+      "Gate_A_Core_Algorithm": "PASS",
+      "Gate_B_Burst_Control": "CONDITIONAL",
+      "Gate_C_Sustained_Ceiling": "CONDITIONAL",
+      "Gate_D_Cluster_Execution": "PASS",
+      "Gate_E_Durability_Persistence": "CONDITIONAL",
+      "Gate_F_Clock_Monotonicity": "CONDITIONAL",
+      "Gate_G_Distributed_Consistency": "CONDITIONAL",
+      "Gate_H_Idempotency_Safety": "PASS"
+    }
+  },
+  "test_execution": {
+    "test_classes": [
+      "Phase72WaitSemanticsTest",
+      "Phase72ClockDiscontinuityTest"
+    ],
+    "total_tests": 13,
+    "passed": 13,
+    "failed": 0,
+    "errors": 0
+  }
+}
