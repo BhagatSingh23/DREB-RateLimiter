@@ -1,0 +1,61 @@
+{
+  "phase": "Phase 7.3.1: Final Guarantee Claim Correction and Deployment-Assumption Verification",
+  "git_starting_commit": "c4a857cd371dfb984a44ffee0684176303c84477",
+  "branch": "research/systematic-improvement",
+  "audit_date": "2026-11-11",
+  "corrected_rate_and_timing_bounds": {
+    "absolute_clock_offset_bound_ms": 5.0,
+    "maximum_two_point_reading_error_ms": 10.0,
+    "timing_allowance_tokens": 10.0,
+    "ideal_envelope_formula": "G1(T) = S_max + R * T",
+    "relaxed_envelope_formula": "G1_delta(T) = S_max + R * (T + 0.010)",
+    "ideal_vs_relaxed_envelope_status": "G1_delta is a relaxed timing-tolerant envelope, NOT strict G1 preservation"
+  },
+  "corrected_single_event_overadmission": {
+    "single_request_cap_c_max": 1000.0,
+    "single_event_maximum_admitted_tokens_across_reset": 2000.0,
+    "single_event_excess_tokens_at_10ms": 704.2857,
+    "single_event_theoretical_limit_excess_tokens_t_zero": 714.2857,
+    "repeated_discontinuities_global_bound": "NO_FINITE_GLOBAL_BOUND"
+  },
+  "g3_abuse_recovery_derivation": {
+    "reference_abuse_score_K0": 1.0,
+    "reference_deficit_tokens": 450.0,
+    "recovery_rate_lambda_per_second": 0.05,
+    "rested_threshold_epsilon": 0.05,
+    "rested_capacity_percentage": 96.39,
+    "tau_rested_seconds": 19.0,
+    "tau_zero_seconds": 20.0,
+    "decoupling_of_d_and_lambda": "d=1.5 governs token burn rate; lambda=0.05 governs temporal decay; orthogonal"
+  },
+  "chrony_and_clock_audit": {
+    "chronyd_installed_in_containers": false,
+    "container_time_architecture": "Debian containers inherit macOS LinuxKit VM kernel time",
+    "colocated_node_drift": "Identically zero due to shared VM kernel clock, not independent NTP disciplining",
+    "makestep_syntax": "makestep <threshold> <limit>; slew-only requires omitting makestep or 'makestep 0 0'",
+    "clock_synchronization_classification": "ASSUMED_NOT_ENFORCED"
+  },
+  "redis_cluster_failure_model": {
+    "topology": "6 Redis 7.4.11 nodes across 3 shards (ports 7001-7006)",
+    "replicas_per_primary_N": 1,
+    "wait_acknowledgement_guarantee_scope": "Under N=1, acked replica is only candidate. Under N>=2, acked replica promotion is NOT guaranteed",
+    "highest_offset_election": "PROBABILISTIC_VIA_DELAY (Not an enforced consensus guarantee)",
+    "cluster_replica_validity_factor": 10,
+    "jedis_cluster_wait_affinity": "JedisCluster adapter is asynchronous; WAIT requires single-node connection affinity",
+    "excluded_domains": [
+      "minority_partition_split_brain",
+      "simultaneous_multi_node_power_loss",
+      "competing_replica_election_races_N_ge_2"
+    ]
+  },
+  "final_gate_reclassifications": {
+    "Gate_A_Algorithmic_Correctness": "PASS",
+    "Gate_B_Burst_Control_G1": "CONDITIONAL",
+    "Gate_C_Sustained_Ceiling_G2": "CONDITIONAL",
+    "Gate_D_Cluster_Execution": "PASS",
+    "Gate_E_Durability_Persistence": "CONDITIONAL",
+    "Gate_F_Clock_Monotonicity": "CONDITIONAL",
+    "Gate_G_Distributed_Consistency": "CONDITIONAL",
+    "Gate_H_Idempotency_Safety": "CONDITIONAL"
+  }
+}
