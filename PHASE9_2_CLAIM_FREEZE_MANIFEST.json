@@ -1,0 +1,147 @@
+{
+  "phase": "9.2",
+  "audit_type": "FINAL_AUTHOR_REVIEW_AND_CLAIM_FREEZE",
+  "timestamp": "2026-11-11T16:05:00Z",
+  "repository": "DREB-RateLimiter",
+  "branch": "research/systematic-improvement",
+  "reference_commit": "2a78c5e",
+  "target_policy": {
+    "identifier": "rca70",
+    "class": "com.dreb.ratelimit.policies.AdaptiveCeilingIdleCreditPolicy",
+    "parameters": {
+      "refill_rate_R": 1000.0,
+      "primary_capacity_B_max": 700.0,
+      "sustained_capacity_S_max": 1285.7143,
+      "base_idle_cap": 450.0,
+      "deficit_multiplier_d": 1.5,
+      "ceiling_sensitivity_gamma": 0.75,
+      "recovery_rate_lambda_rec": 0.05
+    }
+  },
+  "mathematical_claims_frozen": {
+    "G1_local_deterministic_bound": {
+      "formula": "A(T) <= 1285.7143 + 1000.0 * T",
+      "scope": "Local monotonic server time on single uninterrupted node",
+      "status": "PROVEN_THEOREM_1"
+    },
+    "G1_delta_physical_envelope": {
+      "formula": "A(Delta_t) <= 1295.7143 + 1000.0 * Delta_t",
+      "assumption": "Absolute UTC clock offset |Delta_tau| <= 10 ms (2 * delta, delta = 5 ms)",
+      "scope": "Conditional physical-time mathematical theorem",
+      "status": "PROVEN_THEOREM_2"
+    },
+    "single_event_failover_bound": {
+      "formula": "A_event_burst <= 2 * C_max = 2000.0 tokens",
+      "scope": "Per client key, per isolated single-fault primary crash event",
+      "status": "PROVEN_THEOREM_3"
+    },
+    "G2_asymptotic_convergence": {
+      "sufficiency": "lim(T->inf) N_E(T)/T = 0 is universally sufficient under all admissible demand patterns",
+      "necessity": "lim(T->inf) N_E(T)/T = 0 is strictly necessary under sustained saturated adversarial demand",
+      "status": "PROVEN_THEOREMS_4_AND_5"
+    },
+    "G3_abuse_recovery_duration": {
+      "formula": "tau(K0 -> epsilon) = (K0 - epsilon) / lambda_rec",
+      "reference_state": "K0 = 1.0 to epsilon = 0.05 yields tau_0.05 = 19.0 seconds; tau_0 = 20.0 seconds",
+      "status": "PROVEN_THEOREM_6"
+    },
+    "idempotency_gate_H": {
+      "conditions": [
+        "1. Cache Hit: identical cost and payloadHash returns cached decision with zero state mutation",
+        "2. Payload Conflict: mismatched cost or payloadHash returns IDEMPOTENCY_CONFLICT",
+        "3. Pristine Execution: executes transition, writes 60s TTL idempotency record",
+        "4. Primary Failover Durability: asynchronous replication subject to un-replicated loss; WAIT 1 guarantees cross-node replication",
+        "5. Replay Expiration: automatic Redis memory reclamation after 60 seconds"
+      ],
+      "status": "VERIFIED_LUA_CONTRACT"
+    }
+  },
+  "experimental_claims_frozen": {
+    "workload_suite_composition": {
+      "total_synthetic_workloads": 10,
+      "synthetic_workload_identifiers": ["W01_benign_steady", "W02_legitimate_on_off_burst", "W03_sustained_overload", "W04_mixed_competing", "W05_timing_farming", "W06_white_box_oracle", "W07_black_box_probe", "W08_aimd_adaptive", "W09_multi_worker_collision", "W10_post_attack_recovery"],
+      "closed_loop_attack_families": 17,
+      "seeds_evaluated": 30,
+      "seed_range": "5000-5029"
+    },
+    "benign_burst_tolerance": {
+      "nominal_burst_cost": 1000.0,
+      "request_frr_percent": 0.0,
+      "token_frr_percent": 0.0,
+      "condition": "Tested quiescent and fully replenished initial state (K=0, B=700, I=450)"
+    },
+    "adversarial_farming_suppression": {
+      "comparator": "tb_large (C=1000, R=1000)",
+      "metric": "adv_rate_norm (admitted adversarial tokens / duration / R)",
+      "workload_reductions": {
+        "W04_mixed_competing": {
+          "baseline_tb_large": 0.451667,
+          "rca70": 0.081666,
+          "traffic_suppression_percent": 81.92
+        },
+        "W08_aimd_adaptive": {
+          "baseline_tb_large": 0.800000,
+          "rca70": 0.346667,
+          "traffic_suppression_percent": 56.67
+        },
+        "W10_post_attack_recovery": {
+          "baseline_tb_large": 0.350000,
+          "rca70": 0.050000,
+          "traffic_suppression_percent": 85.71
+        }
+      },
+      "closed_loop_ablation_credit_rate_suppression": {
+        "metric": "credit_rate_norm (bonus credit accrual rate)",
+        "baseline_unmitigated": 1.000000,
+        "rca70_rec_010": 0.069567,
+        "credit_accrual_reduction_percent": 93.04
+      }
+    }
+  },
+  "memory_model_frozen": {
+    "java_in_memory": {
+      "primitive_payload_bytes": 40.0,
+      "shallow_object_bytes": 56.0,
+      "retained_heap_bytes_per_client": "150.6 - 165.3 bytes in ConcurrentHashMap<String, ClientState>",
+      "one_million_clients_heap_mb": "150.6 - 165.3 MB"
+    },
+    "redis_cluster": {
+      "state_hash_bytes": 216.0,
+      "idempotency_record_bytes": 176.0,
+      "sizing_formula": "M_Redis ≈ 216 * N_state + 176 * N_idemp (bytes)",
+      "scenario_1M_state_1M_idemp_mb": 392.0
+    }
+  },
+  "latency_hierarchy_frozen": {
+    "scope_A_in_memory_java": {
+      "p50_ns": 42.0,
+      "p90_ns": 61.0,
+      "p99_ns": 83.0,
+      "allocation_bytes_per_op": 0.0
+    },
+    "scope_B_redis_lua_engine": {
+      "p50_ms": 0.082,
+      "p90_ms": 0.145,
+      "p99_ms": 0.310
+    },
+    "scope_C_async_network_rtt": {
+      "p50_ms": 0.259,
+      "p90_ms": 0.412,
+      "p99_ms": 0.667,
+      "sub_millisecond_line_rate": true
+    },
+    "scope_D_sync_wait1_network_rtt": {
+      "p50_ms": 0.348,
+      "p90_ms": 0.720,
+      "p99_ms": 1.301,
+      "sub_millisecond_line_rate": false,
+      "p99_penalty_percent": 95.05
+    }
+  },
+  "pareto_frontiers_frozen": {
+    "scope_1_small_bursts_c_le_700": ["static_db_070c"],
+    "scope_2_large_bursts_c_eq_1000": ["rca70", "tb_large"],
+    "scope_3_composite_workloads": ["rca70", "tb_large"]
+  },
+  "final_readiness_status": "READY_FOR_AUTHOR_APPROVAL"
+}
