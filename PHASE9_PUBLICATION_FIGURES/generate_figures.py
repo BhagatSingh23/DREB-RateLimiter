@@ -52,18 +52,18 @@ def plot_fig1():
     gamma = 0.75
     C_eff = baseCap / (1.0 + gamma * K)
 
-    line1, = ax1.plot(K, C_eff, color='#1f77b4', lw=2.2, label=r'Adaptive Burst Ceiling $C_{\mathrm{eff}}(K)$')
+    line1, = ax1.plot(K, C_eff, color='#1f77b4', lw=2.2, label=r'Adaptive Idle Ceiling $I_{\mathrm{ceil}}(K)$')
     ax1.set_xlabel('Abuse Score $K$')
-    ax1.set_ylabel(r'Effective Burst Ceiling $C_{\mathrm{eff}}$ (tokens)', color='#1f77b4')
+    ax1.set_ylabel(r'Adaptive Idle Ceiling $I_{\mathrm{ceil}}$ (credits)', color='#1f77b4')
     ax1.tick_params(axis='y', labelcolor='#1f77b4')
     ax1.set_ylim(80, 500)
 
     # Key state annotations
     states = [
-        (0.0, 450.0, r'Quiescent Baseline' + '\n' + r'$K=0, C_{\mathrm{eff}}=450$'),
-        (1.0, 257.14, r'Single Burst ($K=1.0$)' + '\n' + r'$C_{\mathrm{eff}}=257.14$'),
-        (2.0, 180.0, r'Repeated Burst ($K=2.0$)' + '\n' + r'$C_{\mathrm{eff}}=180.0$'),
-        (4.0, 112.5, r'Saturated ($K=4.0$)' + '\n' + r'$C_{\mathrm{eff}}=112.5$')
+        (0.0, 450.0, r'Quiescent Baseline' + '\n' + r'$K=0, I_{\mathrm{ceil}}=450$'),
+        (1.0, 257.14, r'Single Burst ($K=1.0$)' + '\n' + r'$I_{\mathrm{ceil}}=257.14$'),
+        (2.0, 180.0, r'Repeated Burst ($K=2.0$)' + '\n' + r'$I_{\mathrm{ceil}}=180.0$'),
+        (4.0, 112.5, r'Saturated ($K=4.0$)' + '\n' + r'$I_{\mathrm{ceil}}=112.5$')
     ]
     for k_val, c_val, label in states:
         ax1.scatter([k_val], [c_val], color='#d62728', zorder=5, s=35)
@@ -80,7 +80,7 @@ def plot_fig1():
     ax1.text(0.9, 360, r'Continuous Linear Recovery ($\lambda_{\mathrm{rec}} = 0.05\,\mathrm{s}^{-1}$)',
              color='#2ca02c', fontsize=8.5, rotation=-22, weight='bold')
 
-    plt.title('DREB-RCA70 Rest-Conditioned Burst Ceiling Dynamics', pad=12)
+    plt.title('DREB-RCA70 Rest-Conditioned Idle Ceiling Dynamics', pad=12)
     save_fig(fig, 'fig1_architecture_adaptive_ceiling')
 
 # -----------------------------------------------------------------------------
