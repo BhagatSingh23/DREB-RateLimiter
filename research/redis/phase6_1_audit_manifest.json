@@ -1,0 +1,69 @@
+{
+  "phase": "Phase 6.1: Redis State Lifecycle and Distributed Security Audit",
+  "git_starting_commit": "882014eaaf61d6ef110fb813c0ff032e869ba561",
+  "branch": "research/systematic-improvement",
+  "audit_date": "2026-11-11",
+  "java_runtime": {
+    "vm_name": "OpenJDK 64-Bit Server VM",
+    "version": "21.0.9+10-LTS",
+    "compiler_target": "Java 17 compatibility bytecode",
+    "maven_version": "3.9.9"
+  },
+  "redis_environment": {
+    "engine_version": "7.4.11",
+    "container_id": "9094e2ae147c",
+    "host": "127.0.0.1:6379",
+    "cluster_enabled": false,
+    "role": "master",
+    "connected_slaves": 0,
+    "evaluated_topology": "STANDALONE_ONLY"
+  },
+  "audit_findings_summary": {
+    "recovery_model": {
+      "claimed_in_phase6": "Exponential: K(t) = K0 * exp(-lambda * t)",
+      "actual_implementation": "Linear: K(t) = max(0, K0 - lambda * t)",
+      "correct_recovery_time": "tau = max(0, K_max - epsilon) / lambda_rec (Finite duration)",
+      "status": "CORRECTED"
+    },
+    "key_expiration_hazard": {
+      "all_fields_reset": true,
+      "burst_tokens_restored_to_bmax": 700.0,
+      "sustained_tokens_restored_to_smax": 1285.71,
+      "abuse_score_purged_to_zero": true,
+      "earned_idle_credit_lost": true,
+      "false_rejection_consequence": "Legitimate idle client returns to I=0; nominal burst c=1000 is rejected",
+      "verdict": "AUTOMATIC_KEY_EXPIRATION_UNSAFE_FOR_ACTIVE_RATE_LIMITER_STATE"
+    },
+    "clock_continuity": {
+      "client_timestamp_mode": "VULNERABLE_TO_FORWARD_SKEW",
+      "redis_server_time_mode": "IMMUNE_TO_CLIENT_SKEW_ONLY",
+      "redis_host_clock_backward_step": "FREEZES_REFILLS_UNTIL_CATCHUP",
+      "redis_failover_clock_skew": "TEMPORARY_REFILL_FREEZE_OR_PREMATURE_REFILL"
+    },
+    "idempotency_lifecycle": {
+      "storage_format": "Binary decision integer (1 or 0)",
+      "metadata_cached": "None (burst, sustained, idle, abuse returned as -1.0)",
+      "scope": "Per-client namespaced via {clientId}:dreb:idemp:<key>",
+      "retention_horizon": "Bounded by idempTtlSeconds; retries after TTL cause double debit",
+      "payload_binding": "Unbound (same key with different cost returns prior decision)"
+    },
+    "deployment_scope": {
+      "standalone_tested": true,
+      "cluster_live_tested": false,
+      "cluster_classification": "UNVERIFIED_IN_LIVE_ENVIRONMENT",
+      "source_placement": "src/test/java/com/dreb/ratelimit/redis/RedisRca70Limiter.java (TEST_ONLY)"
+    }
+  },
+  "test_execution": {
+    "test_classes": [
+      "Phase61DeploymentScopeTest",
+      "Phase61StateResetAndTtlTest",
+      "Phase61ClockAndIdempotencyAuditTest"
+    ],
+    "total_tests_run": 20,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "overall_status": "ALL_TESTS_PASSING"
+  }
+}
