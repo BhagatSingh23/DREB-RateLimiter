@@ -1,0 +1,18 @@
+test_id,subsystem,gate,test_name,parameters,observed_metric,decision_outcome,gate_status
+P7-01,PRODUCTION_API,Gate_A,testAtomicStateTransitionsAndBoundaryCosts,"c=700, then c=10 (B=0, I=0)","B=0, S=585.71, d2 rejected","ALLOW, then DENY (BURST_LIMIT_EXCEEDED)",PASS
+P7-02,STATE_LIFECYCLE,Gate_B,testActiveLimiterStateHasNoTtl,"c=100, activeStateTtl=0","Redis TTL = -1 (persists indefinitely)",ALLOW,PASS
+P7-03,COLD_START,Gate_B,testColdStartPolicies,"SECURE_CONSERVATIVE (I=0), c=1000","Available burst = 700 < 1000",DENY,PASS
+P7-04,COLD_START,Gate_B,testColdStartPolicies,"PERMISSIVE_FULL_BURST (I=450), c=1000","Available burst = 700 + 450/1.5 = 1000",ALLOW,PASS
+P7-05,IDEMPOTENCY,Gate_C,testIdempotencyPayloadBindingAndConflictDetection,"idempKey=tx-7711, fp=cost=10, retry same fp","isCached=true, exact burst=690 preserved",ALLOW (CACHED),PASS
+P7-06,IDEMPOTENCY,Gate_C,testIdempotencyPayloadBindingAndConflictDetection,"idempKey=tx-7711, fp=cost=1000 (conflicting)","Conflict detected; state unmutated",IDEMPOTENCY_CONFLICT,PASS
+P7-07,IDEMPOTENCY,Gate_C,testIdempotencyKeyExpiration,"idempKey=short-ttl, ttl=2s, retry after ttl","Key expired; fresh evaluation debits 100",ALLOW (FRESH_DEBIT),PASS
+P7-08,INFRASTRUCTURE,Gate_H,testInfrastructureFailurePolicies,"Redis down, failureMode=FAIL_CLOSED","isAllowed=false, reason=JedisConnectionException",INFRASTRUCTURE_ERROR,PASS
+P7-09,INFRASTRUCTURE,Gate_H,testInfrastructureFailurePolicies,"Redis down, failureMode=FAIL_OPEN","isAllowed=true, fail-open active",ALLOW (FAIL_OPEN),PASS
+P7-10,CONCURRENCY,Gate_A,testHighConcurrencyContentionSingleKey,"16 threads, 100 req/thread (1600 total)","Total offered=16000 tokens, S>=0, B>=0",ADMITTED_WITHIN_CAPACITY,PASS
+P7-11,CLUSTER_TOPOLOGY,Gate_D,testLiveClusterTopology,"6 nodes (127.0.0.1:7001-7006), 3 masters, 3 slaves","16384 slots covered, cluster_enabled=1",TOPOLOGY_VERIFIED,PASS
+P7-12,CLUSTER_EXECUTION,Gate_D,testSingleClientKeyExecutionOnCluster,"clientId=cluster_tenant_101, c=200","B remaining=500.0, routed to master slot",ALLOW,PASS
+P7-13,CLUSTER_SHARDING,Gate_D,testMultiClientKeysAcrossClusterShards,"30 clients across 16384 slots","Distributed across masters 7001, 7002, 7003",ALLOW_ALL_DISTRIBUTED,PASS
+P7-14,CLUSTER_AFFINITY,Gate_D,testHashTagAffinityEliminatesCrossSlotErrors,"{user_affinity_99}:state & {user_affinity_99}:idemp","CRC16('user_affinity_99') same slot, no CROSSSLOT",ALLOW (ATOMIC_SCRIPT),PASS
+P7-15,PERSISTENCE,Gate_E,testStatePersistenceAcrossRdbSave,"BGSAVE triggered during active state","State intact after snapshot, TTL=-1",DURABLE_SNAPSHOT_PRESERVED,PASS
+P7-16,MEMORY_CAPACITY,Gate_H,testMemoryUsagePerClientKey,"MEMORY USAGE stateKey & idempKey","State Hash=216 bytes, Idemp String=176 bytes",MEMORY_MEASURED,PASS
+P7-17,TIME_CONTINUITY,Gate_F,testServerTimeEvaluationResolution,"Two successive server-time requests","ts2 >= ts1, microsecond epoch resolution",MONOTONIC_TIMESTAMPS,PASS

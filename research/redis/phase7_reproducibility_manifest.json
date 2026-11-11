@@ -1,0 +1,51 @@
+{
+  "phase": "Phase 7: Production Redis Adapter and State-Lifecycle Engineering",
+  "git_starting_commit": "c97a7b04423b83357121c791313879eea737f216",
+  "branch": "research/systematic-improvement",
+  "build_and_runtime": {
+    "java_runtime": "OpenJDK 64-Bit Server VM (build 21.0.9+10-LTS)",
+    "maven_version": "3.9.9",
+    "compiler_target": "Java 17 compatibility bytecode",
+    "production_package": "com.dreb.ratelimit.redis (under src/main/java)",
+    "jedis_dependency_scope": "compile (promoted from test scope)"
+  },
+  "environments_tested": {
+    "standalone": {
+      "version": "7.4.11",
+      "host": "127.0.0.1:6379",
+      "container_id": "9094e2ae147c",
+      "topology": "Single-node standalone master"
+    },
+    "cluster": {
+      "version": "7.4.11",
+      "container_name": "dreb-redis-cluster",
+      "nodes": [
+        {"port": 7001, "role": "master", "slots": "0-5460"},
+        {"port": 7002, "role": "master", "slots": "5461-10922"},
+        {"port": 7003, "role": "master", "slots": "10923-16383"},
+        {"port": 7004, "role": "slave", "replicates": 7002},
+        {"port": 7005, "role": "slave", "replicates": 7003},
+        {"port": 7006, "role": "slave", "replicates": 7001}
+      ],
+      "total_slots": 16384,
+      "cluster_enabled": true
+    }
+  },
+  "acceptance_gates": {
+    "Gate_A_ProductionPackaging": "PASS",
+    "Gate_B_StateLifecycle": "PASS",
+    "Gate_C_Idempotency": "PASS",
+    "Gate_D_ClusterValidation": "PASS",
+    "Gate_E_PersistenceFailover": "PASS",
+    "Gate_F_TimeContinuity": "PASS",
+    "Gate_G_MathematicalCompatibility": "PASS",
+    "Gate_H_OperationsAndAlerts": "PASS"
+  },
+  "measured_metrics": {
+    "state_hash_memory_bytes": 216,
+    "idempotency_record_memory_bytes": 176,
+    "estimated_memory_10k_clients_mb": 2.16,
+    "estimated_memory_100k_clients_mb": 21.6,
+    "estimated_memory_1m_clients_mb": 216.0
+  }
+}
