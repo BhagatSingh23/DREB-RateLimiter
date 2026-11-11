@@ -1,0 +1,155 @@
+{
+  "phase": "Phase 7.3.3: Final Gate Correction and Guarantee-Contract Freeze",
+  "git_starting_commit": "2016eeb",
+  "branch": "research/systematic-improvement",
+  "audit_date": "2026-11-11",
+  "contract_freeze_status": "FROZEN_CONSERVATIVE_RESEARCH_CONTRACT",
+  "clock_audit": {
+    "sub_gate_C1_mathematical_derivation": {
+      "status": "PASS",
+      "absolute_offset_assumption_ms": 5.0,
+      "maximum_elapsed_time_error_ms": 10.0,
+      "timing_allowance_delta_seconds": 0.010,
+      "timing_allowance_tokens": 10.0,
+      "proof_basis": "Triangle inequality on two bounded clock readings: |Delta_tau - T| <= 2 * epsilon = 10ms"
+    },
+    "sub_gate_C2_infrastructure_enforcement": {
+      "status": "UNVERIFIED_NOT_ENFORCED",
+      "testbed_chronyd_status": "NOT_INSTALLED",
+      "testbed_kernel_architecture": "Shared LinuxKit VM kernel across all Docker containers",
+      "colocated_drift_status": "Zero drift achieved via shared hardware clock, not active NTP disciplining",
+      "slew_only_enforced_in_testbed": false,
+      "multi_host_physical_validation": false
+    },
+    "overall_clock_gate_status": "NOT_ENFORCED"
+  },
+  "rate_envelopes": {
+    "ideal_g1": {
+      "formula": "G1(T) = S_max + R * T = 1285.7143 + 1000.0 * T",
+      "status": "MATHEMATICALLY_PROVED_AND_LOCALLY_OBSERVED",
+      "scope": "Local server time on a single primary node (Regimes 1 & 2)",
+      "limit_at_0ms_tokens": 1285.7143,
+      "limit_at_10ms_tokens": 1295.7143
+    },
+    "slew_tolerant_g1_delta": {
+      "formula": "G1_delta(T) = S_max + R * (T + delta) = 1295.7143 + 1000.0 * T",
+      "status": "CONDITIONAL_MATHEMATICAL_THEOREM",
+      "scope": "Multi-host physical time under verified Sub-Gate C2 (Regimes 3 & 4)",
+      "limit_at_0ms_tokens": 1295.7143,
+      "limit_at_10ms_tokens": 1305.7143,
+      "scientific_qualification": "G1_delta is a relaxed physical-time envelope, NOT strict preservation of ideal G1"
+    }
+  },
+  "single_event_excess_arithmetic": {
+    "event_burst_admissions_attainable_maximum_tokens": 2000.0,
+    "excess_at_10ms": {
+      "vs_ideal_g1": {
+        "allowable_limit_tokens": 1295.7143,
+        "excess_tokens": 704.2857,
+        "excess_percentage": 54.35
+      },
+      "vs_relaxed_g1_delta": {
+        "allowable_limit_tokens": 1305.7143,
+        "excess_tokens": 694.2857,
+        "excess_percentage": 53.17
+      }
+    },
+    "excess_in_limit_t_approaching_zero": {
+      "vs_ideal_g1": {
+        "allowable_limit_tokens": 1285.7143,
+        "excess_tokens": 714.2857,
+        "excess_percentage": 55.55
+      },
+      "vs_relaxed_g1_delta": {
+        "allowable_limit_tokens": 1295.7143,
+        "excess_tokens": 704.2857,
+        "excess_percentage": 54.35
+      }
+    }
+  },
+  "single_event_bound_verification": {
+    "bounded_quantity": "A_event_burst (Event-attributable burst admissions across discrete reset)",
+    "attainable_maximum_tokens": 2000.0,
+    "cumulative_admissions_formula": "A_total(T) <= 2000.0 + R * T",
+    "attainability_status": "ATTAINABLE_MAXIMUM (Verified via c1=1000, reset, c2=1000 trace)",
+    "accounting_granularity": "Per client key ({dreb:state:<clientId>}); NOT aggregate cluster-wide",
+    "single_event_definition": "Exactly ONE isolated fault transition: un-replicated failover OR state recreation OR forward clock step",
+    "mutual_exclusivity": "Multiple fault mechanisms cannot be combined into a single event",
+    "repeated_events_bound": "NO_FINITE_GLOBAL_BOUND (A_event_burst <= (N_E(T) + 1) * C_max -> infinity as N_E(T) -> infinity)"
+  },
+  "g2_asymptotic_scope": {
+    "formula": "lim(T -> infinity) A_total(T) / T <= 1000.0 tokens/s",
+    "event_count_symbol": "N_E(T)",
+    "status": "MATHEMATICALLY_PROVED",
+    "necessary_and_sufficient_condition": "lim(T -> infinity) N_E(T) / T = 0",
+    "required_assumptions": [
+      "Sublinear event frequency: lim(T -> infinity) N_E(T)/T = 0",
+      "Bounded initial state S(0) <= S_max = 1285.7143 tokens",
+      "Monotonic elapsed-time progression dtau/dt > 0",
+      "Restricted distributed failure model (finite failovers over infinite horizon)"
+    ],
+    "g1_boundary_clarification": "Asymptotic G2 convergence does NOT protect downstream systems against finite-window G1 burst over-admissions"
+  },
+  "g3_abuse_recovery_scope": {
+    "reference_initial_state_K0": 1.0,
+    "is_K0_a_global_maximum": false,
+    "unbounded_K_in_code": true,
+    "tau_0_05_formula": "tau_0.05(K0) = (K0 - 0.05) / 0.05",
+    "tau_0_formula": "tau_0(K0) = K0 / 0.05",
+    "specific_durations": {
+      "K0_0_50": {"tau_0_05_s": 9.0, "tau_0_s": 10.0},
+      "K0_0_6667_single_burst_max": {"tau_0_05_s": 12.33, "tau_0_s": 13.33},
+      "K0_1_00_reference_saturated": {"tau_0_05_s": 19.0, "tau_0_s": 20.0},
+      "K0_2_00_severe_adversary": {"tau_0_05_s": 39.0, "tau_0_s": 40.0}
+    },
+    "universal_constant_status": "REJECTED (19.0s applies strictly to K0=1.0 -> 0.05)",
+    "parameter_orthogonality": "d=1.5 governs token burn rate; lambda=0.05 governs temporal decay velocity",
+    "three_tiers_of_recovery": [
+      "Tier 1: Abuse score decay K(t)",
+      "Tier 2: Effective ceiling expansion C_eff(K)",
+      "Tier 3: Physical token refill (requires 0.7s for B, 9.0s for I)"
+    ]
+  },
+  "idempotency_contract": {
+    "gate_H_status": "CONDITIONAL",
+    "tamper_protection_payload_hash": "PASS",
+    "retention_horizon_seconds": 60.0,
+    "wait_1_semantics": "Volatile in-memory replica acknowledgement; NOT synchronous disk persistence or Paxos consensus",
+    "failover_survival_conditions": [
+      "Delta_t_retry < 60.0 seconds",
+      "WAIT 1 acknowledged on primary connection prior to crash",
+      "Replication factor N = 1 (in N >= 2, acknowledging replica promotion is probabilistic)",
+      "SHA-256 payload fingerprint match",
+      "Idempotency record survives and is visible on newly promoted primary"
+    ],
+    "un_replicated_failover_outcome": "Duplicate debit occurs upon client retry"
+  },
+  "redis_cluster_failure_model": {
+    "topology": "6 Redis 7.4.11 nodes across 3 shards (ports 7001-7006)",
+    "replicas_per_primary_N": 1,
+    "promotion_mechanics": "Under N=1, sole replica is only candidate; under N>=2, highest-offset election is probabilistic via offset delay formula",
+    "cluster_replica_validity_factor": 10,
+    "jedis_cluster_wait_affinity": "JedisCluster is asynchronous; WAIT requires connection pinning",
+    "excluded_domains": [
+      "minority_partition_split_brain",
+      "simultaneous_multi_node_power_loss",
+      "competing_replica_election_races_N_ge_2"
+    ]
+  },
+  "independent_gate_evaluations": {
+    "Gate_A_G1_G1_Delta_Arithmetic": "PASS",
+    "Gate_B_Single_Event_Bound": "PASS",
+    "Gate_C1_Mathematical_Clock_Derivation": "PASS",
+    "Gate_C2_Infrastructure_Clock_Enforcement": "UNVERIFIED_NOT_ENFORCED",
+    "Gate_D_G3_Recovery_Scope": "PASS",
+    "Gate_E_G2_Assumptions": "PASS",
+    "Gate_F_Idempotency_Contract": "CONDITIONAL",
+    "Gate_G_Prose_Manifest_Consistency": "PASS",
+    "Gate_H_Baseline_and_History_Preservation": "PASS"
+  },
+  "overall_recommendations": {
+    "mathematical_research_contract_consistent": true,
+    "production_deployment_certified": false,
+    "ready_for_academic_manuscript_preparation": true
+  }
+}

@@ -29,7 +29,10 @@ public class Phase7RedisClusterLiveTest {
         Set<HostAndPort> nodes = Set.of(
                 new HostAndPort("127.0.0.1", 7001),
                 new HostAndPort("127.0.0.1", 7002),
-                new HostAndPort("127.0.0.1", 7003)
+                new HostAndPort("127.0.0.1", 7003),
+                new HostAndPort("127.0.0.1", 7004),
+                new HostAndPort("127.0.0.1", 7005),
+                new HostAndPort("127.0.0.1", 7006)
         );
         this.jedisCluster = new JedisCluster(nodes, 2000, 5);
         this.connectionProvider = new RedisConnectionProvider.Cluster(jedisCluster);
@@ -56,6 +59,10 @@ public class Phase7RedisClusterLiveTest {
         assertTrue(clusterLimiter.isHealthy(), "Cluster limiter must report healthy against live cluster");
 
         Map<String, ?> clusterNodes = jedisCluster.getClusterNodes();
+        for (int i = 0; i < 20 && (clusterNodes == null || clusterNodes.size() < 6); i++) {
+            try { Thread.sleep(100); } catch (InterruptedException ignored) {}
+            clusterNodes = jedisCluster.getClusterNodes();
+        }
         assertNotNull(clusterNodes);
         // Cluster has 6 nodes (3 primaries + 3 replicas)
         assertTrue(clusterNodes.size() >= 6, "Expected at least 6 cluster nodes, found: " + clusterNodes.size());
@@ -102,8 +109,8 @@ public class Phase7RedisClusterLiveTest {
     @Test
     @DisplayName("Gate D: Hash tag affinity ensures atomic script execution without CROSSSLOT error")
     public void testHashTagAffinityEliminatesCrossSlotErrors() {
-        String clientId = "user_affinity_99";
-        String idempKey = "req-cluster-idemp-01";
+        String clientId = "user_affinity_" + System.nanoTime();
+        String idempKey = "req-cluster-idemp-" + System.nanoTime();
         String fp = "cost=150";
 
         // State key {user_affinity_99}:state and Idemp key {user_affinity_99}:idemp:req
