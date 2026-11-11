@@ -1,0 +1,128 @@
+{
+  "phase": "Phase 7.3.2: Final Mathematical Scope and Guarantee-Manifest Consistency Audit",
+  "git_starting_commit": "5578582",
+  "branch": "research/systematic-improvement",
+  "audit_date": "2026-11-11",
+  "rate_envelopes": {
+    "ideal_g1": {
+      "formula": "G1(T) = S_max + R * T = 1285.7143 + 1000.0 * T",
+      "status": "MATHEMATICALLY_PROVED_AND_LOCALLY_OBSERVED",
+      "limit_at_0ms_tokens": 1285.7143,
+      "limit_at_10ms_tokens": 1295.7143,
+      "scope": "Single healthy primary instance only"
+    },
+    "slew_tolerant_g1_delta": {
+      "formula": "G1_delta(T) = S_max + R * (T + delta) = 1295.7143 + 1000.0 * T",
+      "status": "CONDITIONAL_MATHEMATICAL_THEOREM",
+      "timing_allowance_delta_seconds": 0.010,
+      "timing_allowance_delta_ms": 10.0,
+      "timing_allowance_tokens": 10.0,
+      "limit_at_0ms_tokens": 1295.7143,
+      "limit_at_10ms_tokens": 1305.7143,
+      "scientific_qualification": "G1_delta is a relaxed physical-time envelope, NOT strict preservation of ideal G1"
+    }
+  },
+  "reconciled_single_event_excess_arithmetic": {
+    "event_burst_admissions_cap_tokens": 2000.0,
+    "excess_at_10ms": {
+      "vs_ideal_g1": {
+        "allowable_limit_tokens": 1295.7143,
+        "excess_tokens": 704.2857,
+        "excess_percentage": 54.35
+      },
+      "vs_relaxed_g1_delta": {
+        "allowable_limit_tokens": 1305.7143,
+        "excess_tokens": 694.2857,
+        "excess_percentage": 53.17
+      }
+    },
+    "excess_in_limit_t_approaching_zero": {
+      "vs_ideal_g1": {
+        "allowable_limit_tokens": 1285.7143,
+        "excess_tokens": 714.2857,
+        "excess_percentage": 55.55
+      },
+      "vs_relaxed_g1_delta": {
+        "allowable_limit_tokens": 1295.7143,
+        "excess_tokens": 704.2857,
+        "excess_percentage": 54.35
+      }
+    }
+  },
+  "single_event_bound_scope": {
+    "bounded_quantity": "A_event_burst (Event-attributable burst admissions across discrete reset)",
+    "attainable_maximum_tokens": 2000.0,
+    "cumulative_admissions_formula": "A_total(T) <= 2000.0 + R * T",
+    "accounting_granularity": "Per client key ({dreb:state:<clientId>}); NOT aggregate cluster-wide",
+    "single_event_definition": "Exactly ONE isolated fault transition: un-replicated failover OR state recreation OR forward clock step",
+    "mutual_exclusivity": "Multiple fault mechanisms cannot be combined into a single event",
+    "repeated_events_bound": "NO_FINITE_GLOBAL_BOUND (A_event_burst <= (K + 1) * C_max -> infinity as K -> infinity)"
+  },
+  "clock_evidence_classification": {
+    "absolute_utc_offset_condition_ms": 5.0,
+    "maximum_elapsed_time_error_ms": 10.0,
+    "testbed_chronyd_status": "NOT_INSTALLED",
+    "testbed_clock_discipline": "ASSUMED_NOT_ENFORCED",
+    "multi_host_drift_validation": "UNVERIFIED (Colocated LinuxKit VM kernel shared by all nodes)",
+    "prerequisites_for_future_enforcement": [
+      "Verified /etc/chrony/chrony.conf with makestep 0 0 and maxslewrate 500",
+      "Runtime verification via chronyc tracking and chronyc sources",
+      "Continuous Prometheus/Datadog alerting for offset > 5.0ms",
+      "Leap second smearing upstream NTP configuration",
+      "Multi-host physical failover validation"
+    ]
+  },
+  "g3_abuse_recovery_scope": {
+    "reference_initial_state_K0": 1.0,
+    "is_K0_a_global_maximum": false,
+    "unbounded_K_in_code": true,
+    "tau_0_05_formula": "tau_0.05(K0) = (K0 - 0.05) / 0.05",
+    "tau_0_formula": "tau_0(K0) = K0 / 0.05",
+    "specific_durations": {
+      "K0_0_50": {"tau_0_05_s": 9.0, "tau_0_s": 10.0},
+      "K0_0_6667_single_burst_max": {"tau_0_05_s": 12.33, "tau_0_s": 13.33},
+      "K0_1_00_reference_saturated": {"tau_0_05_s": 19.0, "tau_0_s": 20.0},
+      "K0_2_00_severe_adversary": {"tau_0_05_s": 39.0, "tau_0_s": 40.0}
+    },
+    "universal_constant_status": "REJECTED (19.0s is NOT universal; applies strictly to K0=1.0 -> 0.05)",
+    "parameter_orthogonality": "d=1.5 governs token burn rate; lambda=0.05 governs temporal decay velocity",
+    "three_tiers_of_recovery": [
+      "Tier 1: Abuse score decay K(t)",
+      "Tier 2: Effective ceiling expansion C_eff(K)",
+      "Tier 3: Physical token refill (requires 0.7s for B, 9.0s for I)"
+    ]
+  },
+  "g2_asymptotic_scope": {
+    "formula": "lim(T -> infinity) A(T) / T <= 1000.0 tokens/s",
+    "status": "MATHEMATICALLY_PROVED",
+    "required_assumptions": [
+      "Sublinear event frequency: lim(T -> infinity) K(T)/T = 0",
+      "Bounded initial state S(0) <= S_max",
+      "Monotonic elapsed-time progression dtau/dt > 0",
+      "Restricted distributed failure model (finite failovers over infinite horizon)"
+    ],
+    "g1_boundary_clarification": "Asymptotic G2 convergence does NOT protect downstream systems against finite-window G1 burst over-admissions"
+  },
+  "redis_cluster_failure_model": {
+    "topology": "6 Redis 7.4.11 nodes across 3 shards (ports 7001-7006)",
+    "replicas_per_primary_N": 1,
+    "promotion_guarantee_scope": "Under N=1, sole replica is only candidate; under N>=2, acknowledged replica promotion is PROBABILISTIC",
+    "cluster_replica_validity_factor": 10,
+    "jedis_cluster_wait_affinity": "JedisCluster is asynchronous; WAIT requires connection pinning",
+    "excluded_domains": [
+      "minority_partition_split_brain",
+      "simultaneous_multi_node_power_loss",
+      "competing_replica_election_races_N_ge_2"
+    ]
+  },
+  "gate_evaluations": {
+    "Gate_A_G1_G1_Delta_Arithmetic": "PASS",
+    "Gate_B_Single_Event_Bound_Scope": "PASS",
+    "Gate_C_Clock_Evidence_Classification": "PASS",
+    "Gate_D_G3_Reference_State_Scope": "PASS",
+    "Gate_E_G2_Assumptions_and_Scope": "PASS",
+    "Gate_F_Prose_Manifest_Consistency": "PASS",
+    "Gate_G_Preservation_Baseline_and_History": "PASS"
+  },
+  "overall_recommendation": "CONDITIONAL_GO"
+}
