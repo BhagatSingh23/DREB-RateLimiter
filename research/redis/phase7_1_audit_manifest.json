@@ -1,0 +1,104 @@
+{
+  "phase": "Phase 7.1: Redis Durability, Failover, and Guarantee-Compatibility Audit",
+  "git_starting_commit": "75f0c25b9bf71b20d7855349e64157fdaa5b92e5",
+  "branch": "research/systematic-improvement",
+  "audit_date": "2026-11-11",
+  "java_runtime": {
+    "vm_name": "OpenJDK 64-Bit Server VM",
+    "version": "21.0.9+10-LTS",
+    "compiler_target": "Java 17 compatibility bytecode",
+    "maven_version": "3.9.9",
+    "client_library": "redis.clients:jedis:4.4.3"
+  },
+  "redis_environments": {
+    "standalone": {
+      "engine_version": "7.4.11",
+      "container_name": "lb-adaptive-redis-1",
+      "host": "127.0.0.1:6379",
+      "cluster_enabled": false,
+      "maxmemory_policy": "noeviction"
+    },
+    "cluster": {
+      "engine_version": "7.4.11",
+      "container_name": "dreb-redis-cluster",
+      "nodes": [
+        {"port": 7001, "initial_role": "master", "slots": "0-5460"},
+        {"port": 7002, "initial_role": "master", "slots": "5461-10922"},
+        {"port": 7003, "initial_role": "master", "slots": "10923-16383"},
+        {"port": 7004, "initial_role": "slave", "master_port": 7002},
+        {"port": 7005, "initial_role": "slave", "master_port": 7003},
+        {"port": 7006, "initial_role": "slave", "master_port": 7001}
+      ],
+      "total_slots": 16384,
+      "cluster_state": "ok"
+    }
+  },
+  "workstream_audit_summary": {
+    "workstream_a_durability": {
+      "failover_write_loss": "CONFIRMED_HAZARD",
+      "g1_overadmission_tokens": 104.2857,
+      "replication_model": "Asynchronous by default; writes acknowledged prior to replica fsync",
+      "mitigation": "Optional WAIT command adds synchronous replication at +2-5ms latency penalty",
+      "verdict": "G1_CONDITIONALLY_INVALIDATED_DURING_FAILOVER"
+    },
+    "workstream_b_idempotency_matrix": {
+      "matrix_cases_evaluated": 6,
+      "same_fp_present": "PASS (Exact cached decision returned, zero state mutation)",
+      "conflicting_fp_present": "PASS (IDEMPOTENCY_CONFLICT returned, zero state mutation)",
+      "same_fp_expired": "CONDITIONAL (Fresh evaluation occurs after tau_idemp=60s; causes duplicate debit)",
+      "conflicting_fp_expired": "PASS (Fresh evaluation occurs; cost debited as new request)",
+      "failover_loss_idemp_only": "CONDITIONAL (State present but idemp key dropped -> duplicate debit)",
+      "state_missing_idemp_present": "PASS (Cached decision returned; state NOT recreated)",
+      "verdict": "BOUNDED_IDEMPOTENCY_PROTECTED_WITHIN_RETENTION_WINDOW"
+    },
+    "workstream_c_cluster_advanced": {
+      "moved_redirection": "PASS (JedisCluster automatically refreshes slot cache on MOVED)",
+      "ask_redirection": "PASS (Transparent retry during slot migration verified)",
+      "failover_recovery": "PASS (Replica promotion handled transparently by JedisCluster)",
+      "noscript_recovery": "PASS (Limiter catches NOSCRIPT and reloads Lua SHA1 automatically)",
+      "cross_slot_multi_client": "FAIL (Multi-tenant multi-key scripts rejected with CROSSSLOT error; strictly single-tenant)",
+      "verdict": "CLUSTER_CAPABLE_SINGLE_TENANT_ONLY"
+    },
+    "workstream_d_state_lifecycle": {
+      "active_state_ttl": "0 (Disabled / persistent state hash; eliminates abuse reset vulnerability)",
+      "memory_exhaustion_protection": "maxmemory-policy noeviction throws OOM, triggering FAIL_CLOSED INFRASTRUCTURE_ERROR",
+      "cold_start_conservative": "I_init=0, effBurst=700 (Strictly denies initial 800 burst)",
+      "cold_start_permissive": "I_init=450, effBurst=1000 (Allows initial 800 burst)",
+      "verdict": "PASS_OPERATIONAL_MEMORY_SAFETY"
+    },
+    "workstream_e_clock_failure": {
+      "backward_step_clamping": "PASS (Clamped to elapsed_sec=0; eliminates negative refill and credit rollback)",
+      "forward_jump_acceleration": "PASS (Accelerated refill strictly capped at burstMax and sustainedMax)",
+      "failover_clock_skew": "CONDITIONAL (Dependent on host NTP synchronization across cluster nodes)",
+      "microsecond_resolution": "PASS (redis.call('TIME') yields monotonic microsecond timestamps)",
+      "verdict": "PASS_TIME_CONTINUITY_WITH_MONOTONIC_CLAMPING"
+    },
+    "workstream_f_mathematical_guarantees": {
+      "G1_burst_envelope": "CONDITIONAL (Violated during un-replicated failover window; valid under normal operations)",
+      "G2_sustained_ceiling": "CONDITIONAL (Violated if persistence or failover loses debits; valid under normal operations)",
+      "G3_abuse_score_recovery": "PASS (Abuse score decays monotonically; immune to TTL reset when activeStateTtl=0)",
+      "Theorem_2_monotonicity": "CONDITIONAL (Strictly monotonic within node; non-monotonic across asynchronous failover rollback)",
+      "verdict": "SYSTEM_CORRECTNESS_DEGRADES_GRACEFULLY_TO_EVENTUAL_CONSISTENCY"
+    },
+    "workstream_g_gate_reclassification": {
+      "Gate_A_Core_Algorithm": "PASS",
+      "Gate_B_Burst_Control": "CONDITIONAL",
+      "Gate_C_Sustained_Ceiling": "CONDITIONAL",
+      "Gate_D_Cluster_Execution": "PASS",
+      "Gate_E_Durability_Persistence": "CONDITIONAL",
+      "Gate_F_Clock_Monotonicity": "PASS",
+      "Gate_G_Distributed_Consistency": "CONDITIONAL",
+      "Gate_H_Idempotency_Bounded_Safety": "PASS"
+    }
+  },
+  "test_execution": {
+    "test_classes": [
+      "Phase71DurabilityAndFailureAuditTest",
+      "Phase71ClusterAdvancedAuditTest"
+    ],
+    "total_tests": 12,
+    "passed": 12,
+    "failed": 0,
+    "errors": 0
+  }
+}
