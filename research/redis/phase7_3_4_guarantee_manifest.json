@@ -1,0 +1,77 @@
+{
+  "phase": "Phase 7.3.4: Final G2 Necessity and Deployment-Contract Erratum",
+  "git_starting_commit": "e27b00c",
+  "branch": "research/systematic-improvement",
+  "audit_date": "2026-11-11",
+  "contract_freeze_status": "FROZEN_CONSERVATIVE_RESEARCH_CONTRACT_V2",
+  "g2_asymptotic_mathematical_scope": {
+    "formula": "lim(T -> infinity) A_total(T) / T <= 1000.0 tokens/s",
+    "event_count_symbol": "N_E(T)",
+    "abuse_score_symbol": "K",
+    "sublinear_frequency_condition": "lim(T -> infinity) N_E(T) / T = 0",
+    "sufficiency_status": "PROVEN_SUFFICIENT_FOR_ALL_WORKLOADS",
+    "necessity_status": "CONDITIONALLY_NECESSARY_UNDER_SATURATED_ADVERSARIAL_DEMAND_ONLY",
+    "unqualified_if_and_only_if_retracted": true,
+    "proof_basis": "A_total(T) <= S_max + R * T + N_E(T) * C_max; under saturated demand A_total(T) >= R * T + N_E(T) * c_min",
+    "g1_non_mitigation": "Asymptotic G2 convergence provides zero operational protection against finite-window G1 burst spikes"
+  },
+  "physical_time_g1_delta_scope": {
+    "formula": "G1_delta(T) = S_max + R * (T + delta) = 1295.7143 + 1000.0 * T",
+    "status": "CONDITIONAL_MATHEMATICAL_THEOREM",
+    "absolute_clock_offset_assumption_ms": 5.0,
+    "timing_allowance_delta_ms": 10.0,
+    "timing_allowance_tokens": 10.0,
+    "testbed_enforcement_status": "NOT_ENFORCED (No container chronyd; shared LinuxKit VM kernel)",
+    "cluster_failover_status": "Ordinary Redis Cluster failover does NOT automatically preserve G1_delta",
+    "boundary_disclosure": "Without the verified +/- 5ms clock assumption, NO physical-time failover-crossing rate bound is established by this research"
+  },
+  "idempotency_gate_H_contract": {
+    "status": "CONDITIONAL",
+    "five_mandatory_conditions": [
+      "1. Same request identifier (requestId matches)",
+      "2. Same payload fingerprint (SHA-256 matches; altered payload rejected as IDEMPOTENCY_CONFLICT)",
+      "3. Bounded retention window (Delta_t_retry < 60.0 seconds)",
+      "4. Replication ack prior to crash (WAIT 1 acknowledged on primary connection before primary fails)",
+      "5. Record visibility on retry-serving node (acknowledged replica promotes and serves retry)"
+    ],
+    "wait_1_precise_semantics": "Volatile in-memory replica acknowledgement only; NOT consensus, NOT guaranteed promotion, NOT disk durability",
+    "un_replicated_failover_outcome": "Duplicate token debit occurs upon client retry"
+  },
+  "evidence_classification_and_benchmarks": {
+    "test_suite_status": "43 tests passed; confirms functional/algorithmic correctness, NOT multi-server benchmark certification",
+    "latency_measurement_scopes": {
+      "in_memory_java_dispatch": {"p50_ns": 42.0, "p99_ns": 83.0, "source": "Phase 5/5.4.1 JMH microbenchmarks"},
+      "redis_lua_engine_execution": {"p50_ms": 0.082, "p99_ms": 0.310, "source": "Phase 7 internal Lua execution"},
+      "async_redis_client_network": {"p50_ms": 0.259, "p99_ms": 0.667, "source": "Phase 7 Jedis round-trip over loopback TCP"},
+      "sync_wait_redis_client_network": {"p50_ms": 0.348, "p99_ms": 1.301, "source": "Phase 7.2 Jedis WAIT 1 round-trip"}
+    },
+    "pareto_frontier_scope": "Evaluated against 6 objective dimensions in original Phase 1.1, 5.3, and 5.4.1 comparison datasets",
+    "single_event_bound_granularity": {
+      "bounded_quantity": "A_event_burst <= 2000.0 tokens",
+      "scope": "Strictly per client state key ({dreb:state:<clientId>}) across exactly 1 isolated discontinuity event",
+      "attainability": "Attainable maximum verified via c1=1000, reset, c2=1000 trace",
+      "cluster_aggregation": "NOT an aggregate cluster bound; M concurrent bursting clients admit M * 2000.0 tokens"
+    }
+  },
+  "clock_audit": {
+    "sub_gate_C1_mathematical_derivation": "PASS (Triangle inequality: |Delta_tau - T| <= 10ms)",
+    "sub_gate_C2_infrastructure_enforcement": "UNVERIFIED_NOT_ENFORCED (No chronyd; shared VM kernel)",
+    "overall_clock_status": "NOT_ENFORCED"
+  },
+  "independent_gate_evaluations": {
+    "Gate_A_G1_G1_Delta_Arithmetic": "PASS",
+    "Gate_B_Single_Event_Bound": "PASS",
+    "Gate_C1_Mathematical_Clock_Derivation": "PASS",
+    "Gate_C2_Infrastructure_Clock_Enforcement": "UNVERIFIED_NOT_ENFORCED",
+    "Gate_D_G3_Recovery_Scope": "PASS",
+    "Gate_E_G2_Assumptions": "PASS",
+    "Gate_F_Idempotency_Contract": "CONDITIONAL",
+    "Gate_G_Prose_Manifest_Consistency": "PASS",
+    "Gate_H_Baseline_and_History_Preservation": "PASS"
+  },
+  "final_recommendations": {
+    "mathematical_research_contract_consistent": true,
+    "production_deployment_certified": false,
+    "ready_for_academic_manuscript_preparation": true
+  }
+}
