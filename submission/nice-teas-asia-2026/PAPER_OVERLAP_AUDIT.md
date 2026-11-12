@@ -1,6 +1,6 @@
 # PAPER OVERLAP AND INDEPENDENCE AUDIT: DREB-RCA70 VS. PAPER ID 1566
 
-**Target Venue:** 4th IEEE NICE-TEAS ASIA 2026, Hanoi, Vietnam  
+**Target Venue:** 2026 IEEE 4th Networking International Conference on Emerging Trends in Expert Systems, Applications & Security, ASIA (NICE-TEAS ASIA 2026), Hanoi, Vietnam  
 **Evaluation Subject:** DREB-RCA70 Conference Manuscript  
 **Accepted Comparator Paper:** Paper ID 1566 — *"Predictive, Black-Box, SLO-Aware Admission Control for Multi-Tenant AI API Gateways"*  
 **Comparator Authors:** Bhagat Singh (MNNIT Allahabad), Dr. Namrata Singh (Amity University), Dr. Vikash Bhardwaj (Dewan VS IT)  

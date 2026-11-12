@@ -15,7 +15,7 @@ Department of Electrical and Electronics Engineering
 Dewan VS Institute of Engineering \& Technology, Meerut (U.P.), India  
 ORCID: 0000-0002-6897-4309 | `bhardwajvikash.ee@gmail.com`  
 
-*Target Venue:* 4th IEEE International Conference on Novel Intelligent Computing and Emerging Technologies, Engineering, and Applications / Systems (IEEE NICE-TEAS ASIA 2026), Hanoi, Vietnam  
+*Target Venue:* 2026 IEEE 4th Networking International Conference on Emerging Trends in Expert Systems, Applications & Security, ASIA (NICE-TEAS ASIA 2026), Hanoi, Vietnam  
 
 ---
 

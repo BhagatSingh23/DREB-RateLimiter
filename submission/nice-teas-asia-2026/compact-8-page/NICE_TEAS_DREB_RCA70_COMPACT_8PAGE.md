@@ -1,6 +1,6 @@
 # Rest-Conditioned Adaptive Burst Limiting for Multi-Tenant API Gateways: Formal Bounds and Adversarial Evaluation (Compact 8-Page Conference Edition)
 
-**Target Venue:** 4th IEEE International Conference on Network Infrastructure and Computing Ecosystems: Theory, Experiments, Architecture, and Systems (NICE-TEAS ASIA 2026)  
+**Target Venue:** 2026 IEEE 4th Networking International Conference on Emerging Trends in Expert Systems, Applications & Security, ASIA (NICE-TEAS ASIA 2026)  
 **Authors:**
 - Bhagat Singh (Dept. of Computer Science and Engineering, Motilal Nehru National Institute of Technology, Prayagraj, UP, India; `bhagat.20243073@mnnit.ac.in`)
 - Dr. Namrata Singh (Amity School of Engineering and Technology, Amity University Bengaluru, Bengaluru, Karnataka, India; ORCID: 0000-0002-1294-5816; `nsingh@blr.amity.edu`)
@@ -104,7 +104,7 @@ $$A(\Delta t) \le S_{\max} + R(\Delta t + 2\delta) = (S_{\max} + 2R\delta) + R \
 $$\begin{aligned} A(\Delta t) &\le 1285.7143 + 10.0 + 1000.0 \cdot \Delta t \\ &= 1295.7143 + 1000.0 \cdot \Delta t \end{aligned}$$
 The maximum excess attributable to clock drift is exactly $2R\delta = 10.0\,\text{tokens}$.
 
-### 4.3 Single-Event Distributed Failover Bound ($G_4$)
+### 4.3 Single-Event Distributed Failover Bound
 
 **Theorem 3 (Single-Event Maximum Over-Admission):** Under an isolated single-fault failover event per client key where state resets to pristine initial conditions or rolls back to a pre-burst snapshot, cumulative tokens admitted within a localized window $\Delta t$ following the event satisfy:
 $$A_{\text{event\_burst}}(\Delta t) \le 2 \times C_{\max} = 2,000.0\,\text{tokens}$$

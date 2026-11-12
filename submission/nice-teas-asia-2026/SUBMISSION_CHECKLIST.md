@@ -1,6 +1,6 @@
 # IEEE NICE-TEAS ASIA 2026: SUBMISSION AND PUBLICATION READINESS CHECKLIST
 
-**Conference:** 4th IEEE International Conference on Novel Intelligent Computing and Emerging Technologies, Engineering, and Applications / Systems (IEEE NICE-TEAS ASIA 2026)  
+**Conference:** 2026 IEEE 4th Networking International Conference on Emerging Trends in Expert Systems, Applications & Security, ASIA (NICE-TEAS ASIA 2026)  
 **Location:** Hanoi, Vietnam  
 **Manuscript Title:** *Rest-Conditioned Adaptive Burst Limiting for Multi-Tenant API Gateways: Formal Bounds and Adversarial Evaluation*  
 **Auditor:** Quality Control and Verification Panel  

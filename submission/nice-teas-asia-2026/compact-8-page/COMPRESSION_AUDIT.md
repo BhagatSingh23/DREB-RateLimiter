@@ -1,7 +1,7 @@
 # Compression Audit: IEEE NICE-TEAS ASIA 2026 Compact 8-Page Manuscript
 
 **Document Version:** Phase 11 Conference Deliverable  
-**Target Venue:** 4th IEEE International Conference on Network Infrastructure and Computing Ecosystems: Theory, Experiments, Architecture, and Systems (NICE-TEAS ASIA 2026)  
+**Target Venue:** 2026 IEEE 4th Networking International Conference on Emerging Trends in Expert Systems, Applications & Security, ASIA (NICE-TEAS ASIA 2026)  
 **Parent 10-Page Reference:** `submission/nice-teas-asia-2026/main.pdf` (Commit `5d8bfad`)  
 **Compiled 8-Page Artifact:** `submission/nice-teas-asia-2026/compact-8-page/main.pdf`  
 **LaTeX Source:** `submission/nice-teas-asia-2026/compact-8-page/latex/main.tex`  
