@@ -285,28 +285,32 @@ $$\text{Excess}_{G_1} = 2000.0 - 1295.7143 = +704.2857\,\text{tokens}$$
 Against the physical $G_{1,\delta}$ envelope ($1295.7143 + 10.0 = 1305.7143$):
 $$\text{Excess}_{G_{1,\delta}} = 2000.0 - 1305.7143 = +694.2857\,\text{tokens}$$
 
-\subsection{Asymptotic Rate Convergence ($G_2$)}
+\subsection{Asymptotic Rate Containment ($G_2$)}
 We consider the long-term behavior under repeated network discontinuities, cluster failovers, or container restarts.
 
-\begin{theorem}[G2 Asymptotic Convergence Criteria]
-The macroscopic rate converges to SLA rate $R$:
+\begin{theorem}[G2 Asymptotic Containment Criteria]
+The macroscopic rate is contained by SLA rate $R$:
 \begin{equation}
-\lim_{T\to\infty} \frac{A(T)}{T} \le R
+\limsup_{T\to\infty} \frac{A(T)}{T} \le R
 \end{equation}
 \begin{enumerate}
     \item Sublinear total event frequency ($\lim_{T\to\infty} \frac{N_E(T)}{T} = 0$) is \textbf{universally sufficient} under all admissible demand patterns.
-    \item Under sustained saturated adversarial demand, sublinear frequency of effective (independently exploitable) events ($\lim_{T\to\infty} \frac{N_E^*(T)}{T} = 0$) is \textbf{strictly necessary}.
+    \item Under sustained saturated adversarial demand with asymptotically negligible abort downtime ($\lim_{T\to\infty} \frac{\mu(\Omega_{\text{abort}})}{T} = 0$), sublinear frequency of effective (independently exploitable) events ($\lim_{T\to\infty} \frac{N_E^*(T)}{T} = 0$) is \textbf{strictly necessary}.
 \end{enumerate}
 \end{theorem}
 
 \begin{proof}
-\textit{(Sufficiency):} Dividing the upper bound by $T$:
+\textit{(Sufficiency):} Total admissions satisfy $A(T) \le S_{\max} + R \cdot T + N_E(T) C_{\max}$. Dividing by $T$:
 $$\frac{A(T)}{T} \le \frac{S_{\max}}{T} + R + \frac{N_E(T)}{T} C_{\max}$$
-Taking the limit as $T \to \infty$:
-$$\lim_{T\to\infty} \frac{A(T)}{T} \le 0 + R + 0 \cdot C_{\max} = R$$
-\textit{(Necessity under Sustained Saturated Demand):} Let $N_E^*(T)$ count effective events that restore serving readiness ($N_E^* \le N_E$). A saturated adversary immediately expends burst $c_{\min} > R \cdot \Delta t_{\text{event}}$ upon each restored state. Cumulative admissions satisfy:
-$$A(T) \ge R \cdot T_{\text{normal}} + \sum_{i=1}^{N_E^*(T)} A_{\text{event}}(i) \ge R(T - N_E^* \cdot \Delta t_{\text{event}}) + N_E^* \cdot c_{\min}$$
-Dividing by $T$ and taking the limit superior as $T \to \infty$ yields $\limsup_{T\to\infty} A(T)/T \ge R + \lambda_E^*(c_{\min} - R \cdot \Delta t_{\text{event}}) > R$, where $\lambda_E^* = \limsup_{T\to\infty} N_E^*(T)/T > 0$. Thus, sublinear effective reset frequency is strictly necessary to prevent asymptotic rate collapse.
+Taking the limit superior as $T \to \infty$:
+$$\limsup_{T\to\infty} \frac{A(T)}{T} \le 0 + R + 0 \cdot C_{\max} = R$$
+\textit{(Necessity under Saturated Demand with Negligible Abort Downtime):} Let $N_E^*(T)$ count effective events that restore serving readiness ($N_E^* \le N_E$). Normal serving time is $T_{\text{normal}} = T - \mu(\Omega_{\text{trans}}) - \mu(\Omega_{\text{abort}}) \ge T - N_E^* \cdot \Delta t_{\text{event}} - \mu(\Omega_{\text{abort}})$. Saturated adversarial demand consumes continuous refill $R \cdot T_{\text{normal}} - S_{\max}$ plus batch burst $c_{\min} > R \cdot \Delta t_{\text{event}}$ per effective event. Cumulative admissions satisfy:
+$$A(T) \ge R \cdot T + N_E^*(T) \cdot (c_{\min} - R \cdot \Delta t_{\text{event}}) - R \cdot \mu(\Omega_{\text{abort}}(T)) - S_{\max}$$
+Dividing by $T$ and taking the limit superior along the subsequence where $\frac{N_E^*(T_k)}{T_k} \to \lambda_E^* > 0$:
+$$\limsup_{T\to\infty} \frac{A(T)}{T} \ge R + \lambda_E^*(c_{\min} - R \cdot \Delta t_{\text{event}}) - R \cdot \lim_{T\to\infty}\frac{\mu(\Omega_{\text{abort}})}{T} - 0$$
+Because $\lim \frac{\mu(\Omega_{\text{abort}})}{T} = 0$ and $c_{\min} > R \cdot \Delta t_{\text{event}}$:
+$$\limsup_{T\to\infty} \frac{A(T)}{T} \ge R + \lambda_E^*(c_{\min} - R \cdot \Delta t_{\text{event}}) > R$$
+Thus, sublinear effective reset frequency is strictly necessary to prevent asymptotic rate collapse.
 \end{proof}
 
 \subsection{Abuse Score Recovery Duration ($G_3$)}

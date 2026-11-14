@@ -119,8 +119,8 @@ Both editions have been compiled, verified, and audited against the frozen resea
 | PDF File Path            | compact-8-page/main.pdf             | main.pdf (also latex/main.pdf)      |
 | Exact Printed Pages      | Exactly 8 Pages                     | Exactly 10 Pages                    |
 | PDF File Size            | 252,434 bytes                       | 285,825 bytes                       |
-| SHA-256 Checksum         | 458e02fd516955f2d7ddf2e4825c3211913 | 95970a3ce23f5e11c67e90125cf65781923 |
-|                          | 62e879e90c08d4ac01e7235b814ff       | f18dee13a77663c50147fb73280d4       |
+| SHA-256 Checksum         | 8d7c83e804a0824703733baa370ece1d56e | e170b29c76c7cc84bae1bce81f3b18010f4 |
+|                          | a7f41a0ddebe0e5ee648040964713       | a9e6d654acb2407e09468fd9376b1       |
 | LaTeX Source             | compact-8-page/latex/main.tex       | latex/main.tex                      |
 | Embedded Figures         | 5 native vector figures (1,2,3,5,6) | 6 native vector figures (1,2,3,4,5,6)|
 | Tables                   | 5 publication tables (I–V)          | 6 publication tables (I–VI)         |
