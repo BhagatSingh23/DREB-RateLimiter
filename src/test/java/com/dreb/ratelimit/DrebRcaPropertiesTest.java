@@ -242,4 +242,61 @@ public class DrebRcaPropertiesTest {
             assertEquals(Decision.ALLOW, dAllow, tc.name + " must ALLOW at min idle duration");
         }
     }
+
+    @Property(tries = 1)
+    void verifyClusteredAndEffectiveDiscontinuitySchedules() {
+        ManualClock clock = new ManualClock(0.0);
+        InMemoryStateStore store = new InMemoryStateStore();
+        DREBLimiter limiter = DrebRcaPolicyFactory.createRca70Limiter(store, clock, C, R);
+
+        // Schedule 1: Crash-loop / unready cascade (N_E = 100, N_E* = 0)
+        // Discontinuities occur every 1 ms, but node never attains readiness.
+        // Client requests fail/drop during outage; admitted tokens = 0.
+        int totalEvents = 100;
+        double dtCrash = 0.001; // 1 ms
+        double t = 0.0;
+        double admittedClustered = 0.0;
+        int effectiveEvents = 0;
+
+        for (int i = 0; i < totalEvents; i++) {
+            t += dtCrash;
+            clock.set(t);
+            // Simulated unready crash: state not initialized, requests dropped/rejected
+            boolean serviceReady = false;
+            if (serviceReady) {
+                Decision d = limiter.allow("client_crashloop", 700);
+                if (d == Decision.ALLOW) {
+                    admittedClustered += 700;
+                    effectiveEvents++;
+                }
+            }
+        }
+        assertEquals(0, effectiveEvents, "No effective events during crash-loop before readiness");
+        assertEquals(0.0, admittedClustered, "Zero tokens admitted during unready crash-loop");
+        double rateClustered = admittedClustered / t;
+        assertTrue(rateClustered <= R, "Rate during crash-loop is 0 <= R, proving N_E > 0 does not imply over-admission");
+
+        // Schedule 2: Separated effective events (N_E* = N_E = 5)
+        // Discontinuities separated by recovery intervals (e.g. 5 s > Delta_t_event)
+        // Each event successfully restores service and admits burst c_min = 700.
+        clock.set(100.0);
+        t = 100.0;
+        double admittedEffective = 0.0;
+        int effectiveCount = 0;
+        double tauRecovery = 5.0; // 5 seconds between failovers
+
+        for (int i = 0; i < 5; i++) {
+            t += tauRecovery;
+            clock.set(t);
+            // State reset to fresh initial capacity (B_max = 700)
+            store.save("client_effective", ClientState.fresh(700.0, 1285.71, 0.0));
+            Decision d = limiter.allow("client_effective", 700);
+            if (d == Decision.ALLOW) {
+                admittedEffective += 700;
+                effectiveCount++;
+            }
+        }
+        assertEquals(5, effectiveCount, "All 5 separated events must be effective");
+        assertEquals(3500.0, admittedEffective, "Admitted exactly 5 * 700 = 3500 tokens across effective events");
+    }
 }

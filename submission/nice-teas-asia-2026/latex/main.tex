@@ -294,8 +294,8 @@ The macroscopic rate converges to SLA rate $R$:
 \lim_{T\to\infty} \frac{A(T)}{T} \le R
 \end{equation}
 \begin{enumerate}
-    \item Sublinear event frequency ($\lim_{T\to\infty} \frac{N_E(T)}{T} = 0$) is \textbf{universally sufficient} under all admissible demand patterns.
-    \item Under sustained saturated adversarial demand (where the adversary pulses requests whenever tokens or state resets become available), sublinear event frequency is \textbf{strictly necessary}.
+    \item Sublinear total event frequency ($\lim_{T\to\infty} \frac{N_E(T)}{T} = 0$) is \textbf{universally sufficient} under all admissible demand patterns.
+    \item Under sustained saturated adversarial demand, sublinear frequency of effective (independently exploitable) events ($\lim_{T\to\infty} \frac{N_E^*(T)}{T} = 0$) is \textbf{strictly necessary}.
 \end{enumerate}
 \end{theorem}
 
@@ -304,9 +304,9 @@ The macroscopic rate converges to SLA rate $R$:
 $$\frac{A(T)}{T} \le \frac{S_{\max}}{T} + R + \frac{N_E(T)}{T} C_{\max}$$
 Taking the limit as $T \to \infty$:
 $$\lim_{T\to\infty} \frac{A(T)}{T} \le 0 + R + 0 \cdot C_{\max} = R$$
-\textit{(Necessity under Sustained Saturated Demand):} Suppose $\lim_{T\to\infty} N_E(T)/T = \lambda_E > 0$. A saturated adversary immediately expends initial burst $C_{\max}$ upon each reset. Let $A_{\text{event}}(i)$ be tokens admitted during event $i$. Because the client has saturated demand, $A_{\text{event}}(i) \ge c_{\min} > 0$. Cumulative admissions satisfy:
-$$A(T) \ge R \cdot T_{\text{normal}} + \sum_{i=1}^{N_E(T)} A_{\text{event}}(i) \ge R(T - N_E \cdot \Delta t_{\text{event}}) + N_E \cdot c_{\min}$$
-Dividing by $T$ and taking $T \to \infty$ yields $\lim_{T\to\infty} A(T)/T \ge R + \lambda_E(c_{\min} - R \cdot \Delta t_{\text{event}}) > R$. Thus, sublinear reset frequency is strictly necessary to prevent asymptotic rate collapse.
+\textit{(Necessity under Sustained Saturated Demand):} Let $N_E^*(T)$ count effective events that restore serving readiness ($N_E^* \le N_E$). A saturated adversary immediately expends burst $c_{\min} > R \cdot \Delta t_{\text{event}}$ upon each restored state. Cumulative admissions satisfy:
+$$A(T) \ge R \cdot T_{\text{normal}} + \sum_{i=1}^{N_E^*(T)} A_{\text{event}}(i) \ge R(T - N_E^* \cdot \Delta t_{\text{event}}) + N_E^* \cdot c_{\min}$$
+Dividing by $T$ and taking the limit superior as $T \to \infty$ yields $\limsup_{T\to\infty} A(T)/T \ge R + \lambda_E^*(c_{\min} - R \cdot \Delta t_{\text{event}}) > R$, where $\lambda_E^* = \limsup_{T\to\infty} N_E^*(T)/T > 0$. Thus, sublinear effective reset frequency is strictly necessary to prevent asymptotic rate collapse.
 \end{proof}
 
 \subsection{Abuse Score Recovery Duration ($G_3$)}

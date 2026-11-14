@@ -243,12 +243,12 @@ The macroscopic rate converges to SLA rate $R$:
 \begin{equation}
 \lim_{T\to\infty} \frac{A(T)}{T} \le R
 \end{equation}
-Sublinear event frequency ($\lim_{T\to\infty} \frac{N_E(T)}{T} = 0$) is \textbf{universally sufficient}. Under sustained saturated adversarial demand, sublinear event frequency is \textbf{strictly necessary}.
+Sublinear total event frequency ($\lim_{T\to\infty} \frac{N_E(T)}{T} = 0$) is \textbf{universally sufficient}. Under sustained saturated adversarial demand, sublinear frequency of effective (independently exploitable) events ($\lim_{T\to\infty} \frac{N_E^*(T)}{T} = 0$) is \textbf{strictly necessary}.
 \end{theorem}
 \begin{proof}
-\textit{(Sufficiency):} Dividing the upper bound by $T$: $\frac{A(T)}{T} \le \frac{S_{\max}}{T} + R + \frac{N_E(T)}{T} C_{\max}$. As $T \to \infty$, terms with $1/T$ and $N_E(T)/T$ vanish, yielding $\lim_{T\to\infty} A(T)/T \le R$.
+\textit{(Sufficiency):} Total admissions satisfy $A(T) \le S_{\max} + R \cdot T + N_E(T) C_{\max}$. Dividing by $T$: $\frac{A(T)}{T} \le \frac{S_{\max}}{T} + R + \frac{N_E(T)}{T} C_{\max}$. As $T \to \infty$, terms with $1/T$ and $N_E(T)/T$ vanish, yielding $\lim_{T\to\infty} A(T)/T \le R$.
 
-\textit{(Necessity):} If $\lim_{T\to\infty} N_E(T)/T = \lambda_E > 0$, a saturated adversary expends burst $C_{\max}$ upon each reset: $A(T) \ge R(T - N_E \cdot \Delta t_{\text{event}}) + N_E \cdot c_{\min}$. Dividing by $T$ yields $\lim_{T\to\infty} A(T)/T \ge R + \lambda_E(c_{\min} - R \cdot \Delta t_{\text{event}}) > R$. Thus, sublinear reset frequency is strictly necessary.
+\textit{(Necessity):} Let $N_E^*(T)$ count effective events that restore serving readiness ($N_E^* \le N_E$). Under saturated demand with net excess $c_{\min} > R \cdot \Delta t_{\text{event}}$ per effective reset: $A(T) \ge R(T - N_E^* \cdot \Delta t_{\text{event}}) + N_E^* \cdot c_{\min}$. If $\limsup_{T\to\infty} \frac{N_E^*(T)}{T} = \lambda_E^* > 0$, dividing by $T$ yields $\limsup_{T\to\infty} \frac{A(T)}{T} \ge R + \lambda_E^*(c_{\min} - R \cdot \Delta t_{\text{event}}) > R$. Thus, sublinear effective reset frequency is strictly necessary.
 \end{proof}
 
 \subsection{Abuse Score Recovery Duration ($G_3$)}
