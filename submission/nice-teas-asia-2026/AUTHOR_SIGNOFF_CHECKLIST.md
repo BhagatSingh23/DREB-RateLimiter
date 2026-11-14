@@ -157,7 +157,7 @@ The following theorems, lemmas, corollaries, and empirical numbers have been ver
 | **Theorem 2 ($G_{1,\delta}$)** | $A(\Delta t) \le S_{\max} + R(\Delta t + 2\delta)$ | Eq. (6): $A(\Delta t) \le (S_{\max} + 2R\delta) + R\Delta t$ | **VERIFIED** |
 | **Corollary 1** | $A(\Delta t) \le 1295.7143 + 1000.0 \cdot \Delta t$ under $|\Delta\tau| \le 10$ ms | Eq. (7): $A(\Delta t) \le 1295.7143 + 1000.0 \cdot \Delta t$ | **VERIFIED** |
 | **Theorem 3 (Failover)** | $A_{\text{event\_burst}} \le 2 \times C_{\max} = 2,000.0$ tokens | Eq. (8): $A_{\text{event\_burst}} \le 2 \times C_{\max} = 2000$ | **VERIFIED** |
-| **Theorem 4 ($G_2$ Sufficiency/Necessity)** | $\lim N_E(T)/T = 0 \iff \lim A(T)/T \le R$ | Eq. (9): Formally proven for both conditions | **VERIFIED** |
+| **Theorem 4 ($G_2$ Sufficiency/Necessity)** | $\lim \frac{N_E(T)}{T} = 0 \implies \lim \frac{A(T)}{T} \le R$ (Universal Sufficiency); necessity holds under saturated adversarial demand ($c_{\min} > R \cdot \Delta t_{\text{event}}$) | Eq. (9): Formally proven under explicit workload assumptions (Phase 15 Audit) | **VERIFIED UNDER EXPLICIT ASSUMPTIONS** |
 | **Theorem 5 ($G_3$ Recovery)** | $\tau(1.0 \to 0.05) = 19.0$ s, $\tau_0 = 20.0$ s | Eq. (10): $19.0$ s and $20.0$ s | **VERIFIED** |
 | **Benign FRR** | 0.00% False Rejection at 1,000 tokens | Table II: 0.00% under quiescent state | **VERIFIED** |
 | **Adversarial Farming (W04)** | 81.92% suppression ($0.4517 \to 0.0817$) | Table III: 81.9% ($0.4517 \to 0.0817$) | **VERIFIED** |
