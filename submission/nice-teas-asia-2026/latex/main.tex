@@ -295,7 +295,7 @@ The macroscopic rate is contained by SLA rate $R$:
 \end{equation}
 \begin{enumerate}
     \item Sublinear total event frequency ($\lim_{T\to\infty} \frac{N_E(T)}{T} = 0$) is \textbf{universally sufficient} under all admissible demand patterns.
-    \item Under sustained saturated adversarial demand with asymptotically negligible abort downtime ($\lim_{T\to\infty} \frac{\mu(\Omega_{\text{abort}})}{T} = 0$), sublinear frequency of effective (independently exploitable) events ($\lim_{T\to\infty} \frac{N_E^*(T)}{T} = 0$) is \textbf{strictly necessary}.
+    \item Under sustained saturated adversarial demand ($\lambda_{\text{offered}} \ge \frac{5}{3} R$) with asymptotically negligible abort downtime ($\lim_{T\to\infty} \frac{\mu(\Omega_{\text{abort}})}{T} = 0$), sublinear frequency of effective (independently exploitable) events ($\lim_{T\to\infty} \frac{N_E^*(T)}{T} = 0$) is \textbf{strictly necessary}.
 \end{enumerate}
 \end{theorem}
 
@@ -304,7 +304,7 @@ The macroscopic rate is contained by SLA rate $R$:
 $$\frac{A(T)}{T} \le \frac{S_{\max}}{T} + R + \frac{N_E(T)}{T} C_{\max}$$
 Taking the limit superior as $T \to \infty$:
 $$\limsup_{T\to\infty} \frac{A(T)}{T} \le 0 + R + 0 \cdot C_{\max} = R$$
-\textit{(Necessity under Saturated Demand with Negligible Abort Downtime):} Let $N_E^*(T)$ count effective events restoring uncoordinated serving readiness with inter-event separation $\ge t_{\text{drain}} \approx 0.88\,\text{s}$ ($N_E^* \le N_E$). Normal serving time is $T_{\text{normal}} = T - \mu(\Omega_{\text{trans}}) - \mu(\Omega_{\text{abort}}) \ge T - N_E^* \cdot \Delta t_{\text{event}} - \mu(\Omega_{\text{abort}})$. Under saturated adversarial demand, backlogged requests drain sustained balance to zero and consume refills as they arrive, ensuring zero cumulative overflow ($\sum \text{Overflow}_k = 0$). Each effective event injects fresh uncoordinated burst capacity $c_{\min} \ge 700\,\text{tokens}$ additive to continuous refill $R \cdot T_{\text{normal}}$. Cumulative admissions satisfy:
+\textit{(Necessity under Saturated Demand with Negligible Abort Downtime):} Let $N_E^*(T)$ count effective events restoring uncoordinated serving readiness with inter-event separation $\ge t_{\text{drain}} \approx 0.88\,\text{s}$ ($N_E^* \le N_E$). Normal serving time is $T_{\text{normal}} = T - \mu(\Omega_{\text{trans}}) - \mu(\Omega_{\text{abort}}) \ge T - N_E^* \cdot \Delta t_{\text{event}} - \mu(\Omega_{\text{abort}})$. Under saturated adversarial demand ($\lambda_{\text{offered}} \ge \frac{5}{3} R$), requests drain sustained balance to zero within $t_{\text{drain}}$ and consume refills immediately, guaranteeing zero sustained overflow ($\sum \text{Overflow}_{S, k} = 0$). Each effective event injects fresh uncoordinated burst capacity $c_{\min} \ge 700\,\text{tokens}$ additive to continuous refill $R \cdot T_{\text{normal}}$. Cumulative admissions satisfy:
 $$A(T) \ge R \cdot T + N_E^*(T) \cdot (c_{\min} - R \cdot \Delta t_{\text{event}}) - R \cdot \mu(\Omega_{\text{abort}}(T)) - S_{\max}$$
 Dividing by $T$ and taking the limit superior along the subsequence where $\frac{N_E^*(T_k)}{T_k} \to \lambda_E^* > 0$:
 $$\limsup_{T\to\infty} \frac{A(T)}{T} \ge R + \lambda_E^*(c_{\min} - R \cdot \Delta t_{\text{event}}) - R \cdot \lim_{T\to\infty}\frac{\mu(\Omega_{\text{abort}})}{T} - 0$$
